@@ -1,0 +1,51 @@
+# Laravel environment and secrets
+/.env
+/.env.*
+!/.env.example
+/auth.json
+
+# PHP and Composer
+/vendor/
+composer.phar
+.phpunit.result.cache
+/.phpunit.cache/
+/.php-cs-fixer.cache
+
+# Laravel generated files
+/bootstrap/cache/*.php
+/storage/*.key
+/storage/framework/cache/data/
+/storage/framework/sessions/
+/storage/framework/testing/
+/storage/framework/views/
+/storage/logs/
+/public/storage
+/public/hot
+
+# Node.js and frontend builds
+/node_modules/
+/public/build/
+/public/mix-manifest.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE and editor settings
+/.idea/
+/.vscode/
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# General logs and caches
+*.log
+/.cache/
+/.eslintcache
+/.stylelintcache
