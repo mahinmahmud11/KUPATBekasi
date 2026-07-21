@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Partners\Schemas;
 
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -61,6 +62,20 @@ class PartnerForm
                     ->label('Instagram')
                     ->url()
                     ->maxLength(2048),
+                FileUpload::make('logo_path')
+                    ->label('Logo Mitra')
+                    ->image()
+                    ->disk('public')
+                    ->directory('partners/logos')
+                    ->maxSize(2048)
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp']),
+                FileUpload::make('cover_path')
+                    ->label('Foto Sampul Mitra')
+                    ->image()
+                    ->disk('public')
+                    ->directory('partners/covers')
+                    ->maxSize(2048)
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp']),
                 Toggle::make('is_featured')
                     ->label('Mitra Unggulan')
                     ->default(false),

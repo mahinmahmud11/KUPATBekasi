@@ -13,6 +13,8 @@ use App\Models\Product;
 use App\Models\SiteSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -251,14 +253,159 @@ class PartnerResourceTest extends TestCase
             ->assertTableColumnStateSet('products_count', 2, $partner);
     }
 
-    public function test_logo_and_cover_paths_are_not_changed_through_the_form(): void
+    public function test_valid_logo_and_cover_can_be_uploaded_and_paths_saved(): void
     {
+        Storage::fake('public');
+        $logo = UploadedFile::fake()->image('logo.jpg')->size(1024);
+        $cover = UploadedFile::fake()->image('cover.jpg')->size(1024);
+
+        $this->actingAs(User::factory()->admin()->create());
+        Livewire::test(CreatePartner::class)
+            ->fillForm(array_merge($this->validPartnerData(), [
+                'logo_path' => $logo,
+                'cover_path' => $cover,
+            ]))
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $partner = Partner::query()->latest('id')->first();
+        $this->assertNotNull($partner->logo_path);
+        $this->assertStringStartsWith('partners/logos/', $partner->logo_path);
+        Storage::disk('public')->assertExists($partner->logo_path);
+
+        $this->assertNotNull($partner->cover_path);
+        $this->assertStringStartsWith('partners/covers/', $partner->cover_path);
+        Storage::disk('public')->assertExists($partner->cover_path);
+    }
+
+    public function test_non_image_file_is_rejected_for_logo_and_cover(): void
+    {
+        Storage::fake('public');
+        $doc = UploadedFile::fake()->create('document.pdf', 1024, 'application/pdf');
+
+        $this->actingAs(User::factory()->admin()->create());
+        Livewire::test(CreatePartner::class)
+            ->fillForm(array_merge($this->validPartnerData(), [
+                'logo_path' => $doc,
+                'cover_path' => $doc,
+            ]))
+            ->call('create')
+            ->assertHasFormErrors(['logo_path', 'cover_path']);
+    }
+
+    public function test_file_exceeding_2mb_is_rejected_for_logo_and_cover(): void
+    {
+        Storage::fake('public');
+        $large = UploadedFile::fake()->image('large.jpg')->size(2500);
+
+        $this->actingAs(User::factory()->admin()->create());
+        Livewire::test(CreatePartner::class)
+            ->fillForm(array_merge($this->validPartnerData(), [
+                'logo_path' => $large,
+                'cover_path' => $large,
+            ]))
+            ->call('create')
+            ->assertHasFormErrors(['logo_path', 'cover_path']);
+    }
+
+    public function test_replacing_logo_via_edit_form_removes_old_file(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('partners/logos/old.webp', 'old content');
+        $newFile = UploadedFile::fake()->image('new-logo.jpg')->size(1024);
+
+        $partner = Partner::factory()->create(['logo_path' => 'partners/logos/old.webp']);
+
+        Storage::disk('public')->assertExists('partners/logos/old.webp');
+
+        $this->actingAs(User::factory()->admin()->create());
+        $component = Livewire::test(EditPartner::class, ['record' => $partner->getRouteKey()]);
+
+        $component->fillForm($this->validPartnerData());
+
+        $state = $component->get('data.logo_path');
+        $this->assertIsArray($state);
+        $this->assertContains('partners/logos/old.webp', $state);
+
+        $oldFileKey = array_search('partners/logos/old.webp', $state, true);
+        $this->assertNotFalse($oldFileKey);
+
+        $component->call(
+            'callSchemaComponentMethod',
+            'form.logo_path',
+            'deleteUploadedFile',
+            ['fileKey' => $oldFileKey],
+        );
+
+        $newState = $component->get('data.logo_path');
+        $this->assertNotContains('partners/logos/old.webp', $newState);
+
+        $component->set('data.logo_path', [$newFile]);
+        $component->call('save')->assertHasNoFormErrors();
+
+        $partner->refresh();
+
+        $this->assertNotSame('partners/logos/old.webp', $partner->logo_path);
+        $this->assertStringStartsWith('partners/logos/', $partner->logo_path);
+        Storage::disk('public')->assertExists($partner->logo_path);
+        Storage::disk('public')->assertMissing('partners/logos/old.webp');
+    }
+
+    public function test_replacing_cover_via_edit_form_removes_old_file(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('partners/covers/old.webp', 'old content');
+        $newFile = UploadedFile::fake()->image('new-cover.jpg')->size(1024);
+
+        $partner = Partner::factory()->create(['cover_path' => 'partners/covers/old.webp']);
+
+        Storage::disk('public')->assertExists('partners/covers/old.webp');
+
+        $this->actingAs(User::factory()->admin()->create());
+        $component = Livewire::test(EditPartner::class, ['record' => $partner->getRouteKey()]);
+
+        $component->fillForm($this->validPartnerData());
+
+        $state = $component->get('data.cover_path');
+        $this->assertIsArray($state);
+        $this->assertContains('partners/covers/old.webp', $state);
+
+        $oldFileKey = array_search('partners/covers/old.webp', $state, true);
+        $this->assertNotFalse($oldFileKey);
+
+        $component->call(
+            'callSchemaComponentMethod',
+            'form.cover_path',
+            'deleteUploadedFile',
+            ['fileKey' => $oldFileKey],
+        );
+
+        $newState = $component->get('data.cover_path');
+        $this->assertNotContains('partners/covers/old.webp', $newState);
+
+        $component->set('data.cover_path', [$newFile]);
+        $component->call('save')->assertHasNoFormErrors();
+
+        $partner->refresh();
+
+        $this->assertNotSame('partners/covers/old.webp', $partner->cover_path);
+        $this->assertStringStartsWith('partners/covers/', $partner->cover_path);
+        Storage::disk('public')->assertExists($partner->cover_path);
+        Storage::disk('public')->assertMissing('partners/covers/old.webp');
+    }
+
+    public function test_edit_without_new_upload_retains_logo_and_cover_paths(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('partners/logos/existing.webp', 'dummy');
+        Storage::disk('public')->put('partners/covers/existing.webp', 'dummy');
+
         $partner = Partner::factory()->create([
             'logo_path' => 'partners/logos/existing.webp',
             'cover_path' => 'partners/covers/existing.webp',
         ]);
-        $this->actingAs(User::factory()->admin()->create());
 
+        $this->actingAs(User::factory()->admin()->create());
         Livewire::test(EditPartner::class, ['record' => $partner->getRouteKey()])
             ->fillForm(array_merge($this->validPartnerData(), [
                 'name' => 'Mitra Tanpa Perubahan Media',
@@ -270,6 +417,62 @@ class PartnerResourceTest extends TestCase
         $partner->refresh();
         $this->assertSame('partners/logos/existing.webp', $partner->logo_path);
         $this->assertSame('partners/covers/existing.webp', $partner->cover_path);
+        Storage::disk('public')->assertExists('partners/logos/existing.webp');
+        Storage::disk('public')->assertExists('partners/covers/existing.webp');
+    }
+
+    public function test_soft_delete_retains_logo_and_cover_files(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('partners/logos/existing.webp', 'dummy');
+        Storage::disk('public')->put('partners/covers/existing.webp', 'dummy');
+
+        $partner = Partner::factory()->create([
+            'logo_path' => 'partners/logos/existing.webp',
+            'cover_path' => 'partners/covers/existing.webp',
+        ]);
+
+        $this->actingAs(User::factory()->admin()->create());
+        Livewire::test(EditPartner::class, ['record' => $partner->getRouteKey()])
+            ->callAction('delete');
+
+        $this->assertSoftDeleted($partner);
+        Storage::disk('public')->assertExists('partners/logos/existing.webp');
+        Storage::disk('public')->assertExists('partners/covers/existing.webp');
+    }
+
+    public function test_force_delete_removes_logo_and_cover_files(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('partners/logos/existing.webp', 'dummy');
+        Storage::disk('public')->put('partners/covers/existing.webp', 'dummy');
+
+        $partner = Partner::factory()->create([
+            'logo_path' => 'partners/logos/existing.webp',
+            'cover_path' => 'partners/covers/existing.webp',
+        ]);
+
+        $partner->forceDelete();
+
+        $this->assertDatabaseMissing('partners', ['id' => $partner->id]);
+        Storage::disk('public')->assertMissing('partners/logos/existing.webp');
+        Storage::disk('public')->assertMissing('partners/covers/existing.webp');
+    }
+
+    public function test_force_delete_is_safe_when_paths_are_null_or_files_missing(): void
+    {
+        Storage::fake('public');
+
+        $partner1 = Partner::factory()->create(['logo_path' => null, 'cover_path' => null]);
+        $partner1->forceDelete();
+        $this->assertDatabaseMissing('partners', ['id' => $partner1->id]);
+
+        $partner2 = Partner::factory()->create([
+            'logo_path' => 'partners/logos/missing.webp',
+            'cover_path' => 'partners/covers/missing.webp',
+        ]);
+        $partner2->forceDelete();
+        $this->assertDatabaseMissing('partners', ['id' => $partner2->id]);
     }
 
     public function test_demo_dataset_remains_complete_after_normal_seeding(): void

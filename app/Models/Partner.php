@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Partner extends Model
 {
@@ -56,5 +57,33 @@ class Partner extends Model
     public function scopeOrdered(Builder $query): Builder
     {
         return $query->orderBy('sort_order')->orderBy('id');
+    }
+
+    protected static function booted(): void
+    {
+        static::updated(function (Partner $partner) {
+            if ($partner->wasChanged('logo_path')) {
+                $previousLogoPath = $partner->getPrevious()['logo_path'] ?? null;
+                if ($previousLogoPath && $previousLogoPath !== $partner->logo_path) {
+                    Storage::disk('public')->delete($previousLogoPath);
+                }
+            }
+
+            if ($partner->wasChanged('cover_path')) {
+                $previousCoverPath = $partner->getPrevious()['cover_path'] ?? null;
+                if ($previousCoverPath && $previousCoverPath !== $partner->cover_path) {
+                    Storage::disk('public')->delete($previousCoverPath);
+                }
+            }
+        });
+
+        static::forceDeleted(function (Partner $partner) {
+            if ($partner->logo_path) {
+                Storage::disk('public')->delete($partner->logo_path);
+            }
+            if ($partner->cover_path) {
+                Storage::disk('public')->delete($partner->cover_path);
+            }
+        });
     }
 }
