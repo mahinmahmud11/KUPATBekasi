@@ -15,6 +15,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -449,6 +450,235 @@ class ProductResourceTest extends TestCase
         $this->assertSame(2, Banner::query()->count());
         $this->assertSame(1, SiteSetting::query()->count());
         $this->assertSame(0, User::query()->count());
+    }
+
+    public function test_administrator_can_create_a_product_with_two_gallery_items(): void
+    {
+        Storage::fake('public');
+
+        $partner = Partner::factory()->create();
+        $category = Category::factory()->create();
+
+        $file1 = UploadedFile::fake()->image('g1.webp')->size(1024);
+        $file2 = UploadedFile::fake()->image('g2.webp')->size(1024);
+
+        $uuid1 = (string) Str::uuid();
+        $uuid2 = (string) Str::uuid();
+
+        $this->actingAs(User::factory()->admin()->create());
+
+        Livewire::test(CreateProduct::class)
+            ->fillForm([
+                'name' => 'Product with Gallery',
+                'partner_id' => $partner->id,
+                'category_id' => $category->id,
+                'price' => 10000,
+                'unit' => 'pcs',
+                'images' => [
+                    $uuid1 => [
+                        'image_path' => [$file1],
+                        'alt_text' => 'Alt 1',
+                    ],
+                    $uuid2 => [
+                        'image_path' => [$file2],
+                        'alt_text' => 'Alt 2',
+                    ],
+                ],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $product = Product::where('name', 'Product with Gallery')->first();
+        $this->assertNotNull($product);
+
+        $images = $product->images()->orderBy('sort_order')->get();
+        $this->assertCount(2, $images);
+
+        $this->assertStringStartsWith('products/gallery/', $images[0]->image_path);
+        Storage::disk('public')->assertExists($images[0]->image_path);
+        $this->assertSame('Alt 1', $images[0]->alt_text);
+
+        $this->assertStringStartsWith('products/gallery/', $images[1]->image_path);
+        Storage::disk('public')->assertExists($images[1]->image_path);
+        $this->assertSame('Alt 2', $images[1]->alt_text);
+
+        $this->assertSame(1, $images[0]->sort_order);
+        $this->assertSame(2, $images[1]->sort_order);
+    }
+
+    public function test_gallery_item_without_image_results_in_error(): void
+    {
+        $uuid = (string) Str::uuid();
+        $this->actingAs(User::factory()->admin()->create());
+
+        Livewire::test(CreateProduct::class)
+            ->fillForm([
+                'name' => 'Product Bad Gallery',
+                'images' => [
+                    $uuid => [
+                        'image_path' => null,
+                        'alt_text' => 'No image',
+                    ],
+                ],
+            ])
+            ->call('create')
+            ->assertHasFormErrors(["images.{$uuid}.image_path" => 'required']);
+    }
+
+    public function test_replacing_gallery_image_via_edit_form_removes_old_file(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('products/gallery/old-g.webp', 'old content');
+
+        $product = Product::factory()->create();
+        $product->images()->create([
+            'image_path' => 'products/gallery/old-g.webp',
+            'alt_text' => 'Old Alt',
+            'sort_order' => 1,
+        ]);
+
+        $newFile = UploadedFile::fake()->image('new-g.jpg')->size(1024);
+
+        $this->actingAs(User::factory()->admin()->create());
+        $component = Livewire::test(EditProduct::class, ['record' => $product->getRouteKey()]);
+        $component->fillForm($this->validProductData($product->partner, $product->category));
+
+        $state = $component->get('data.images');
+        $this->assertIsArray($state);
+        $this->assertCount(1, $state);
+
+        $uuid = array_key_first($state);
+        $fileState = $state[$uuid]['image_path'];
+        $this->assertIsArray($fileState);
+        $this->assertContains('products/gallery/old-g.webp', $fileState);
+
+        $oldFileKey = array_search('products/gallery/old-g.webp', $fileState, true);
+        $this->assertNotFalse($oldFileKey);
+
+        $component->call(
+            'callSchemaComponentMethod',
+            "form.images.{$uuid}.image_path",
+            'deleteUploadedFile',
+            ['fileKey' => $oldFileKey],
+        );
+
+        $newState = $component->get("data.images.{$uuid}.image_path");
+        $this->assertNotContains('products/gallery/old-g.webp', $newState);
+
+        $component->set("data.images.{$uuid}.image_path", [$newFile]);
+        $component->call('save')->assertHasNoFormErrors();
+
+        $product->refresh();
+        $images = $product->images;
+        $this->assertCount(1, $images);
+
+        $this->assertNotSame('products/gallery/old-g.webp', $images[0]->image_path);
+        $this->assertStringStartsWith('products/gallery/', $images[0]->image_path);
+        Storage::disk('public')->assertExists($images[0]->image_path);
+        Storage::disk('public')->assertMissing('products/gallery/old-g.webp');
+
+        $this->assertSame('Old Alt', $images[0]->alt_text);
+    }
+
+    public function test_deleting_gallery_item_via_edit_form_removes_record_and_file(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('products/gallery/keep.webp', 'keep');
+        Storage::disk('public')->put('products/gallery/delete.webp', 'delete');
+
+        $product = Product::factory()->create();
+        $product->images()->create([
+            'image_path' => 'products/gallery/keep.webp',
+            'alt_text' => 'Keep',
+            'sort_order' => 1,
+        ]);
+        $product->images()->create([
+            'image_path' => 'products/gallery/delete.webp',
+            'alt_text' => 'Delete',
+            'sort_order' => 2,
+        ]);
+
+        $this->actingAs(User::factory()->admin()->create());
+        $component = Livewire::test(EditProduct::class, ['record' => $product->getRouteKey()]);
+        $component->fillForm($this->validProductData($product->partner, $product->category));
+
+        $state = $component->get('data.images');
+        $this->assertCount(2, $state);
+
+        $uuidToDelete = null;
+        foreach ($state as $uuid => $item) {
+            if (is_array($item['image_path']) && in_array('products/gallery/delete.webp', $item['image_path'], true)) {
+                $uuidToDelete = $uuid;
+                break;
+            }
+        }
+
+        $this->assertNotNull($uuidToDelete);
+
+        unset($state[$uuidToDelete]);
+        $component->set('data.images', $state);
+
+        $component->call('save')->assertHasNoFormErrors();
+
+        $product->refresh();
+        $images = $product->images;
+        $this->assertCount(1, $images);
+        $this->assertSame('products/gallery/keep.webp', $images[0]->image_path);
+
+        Storage::disk('public')->assertExists('products/gallery/keep.webp');
+        Storage::disk('public')->assertMissing('products/gallery/delete.webp');
+    }
+
+    public function test_reordering_gallery_items_via_edit_form_updates_sort_order(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('products/gallery/g1.webp', '1');
+        Storage::disk('public')->put('products/gallery/g2.webp', '2');
+
+        $product = Product::factory()->create();
+        $product->images()->create([
+            'image_path' => 'products/gallery/g1.webp',
+            'alt_text' => 'Alt 1',
+            'sort_order' => 1,
+        ]);
+        $product->images()->create([
+            'image_path' => 'products/gallery/g2.webp',
+            'alt_text' => 'Alt 2',
+            'sort_order' => 2,
+        ]);
+
+        $this->actingAs(User::factory()->admin()->create());
+        $component = Livewire::test(EditProduct::class, ['record' => $product->getRouteKey()]);
+        $component->fillForm($this->validProductData($product->partner, $product->category));
+
+        $state = $component->get('data.images');
+        $uuids = array_keys($state);
+        $this->assertCount(2, $uuids);
+
+        $newState = [
+            $uuids[1] => $state[$uuids[1]],
+            $uuids[0] => $state[$uuids[0]],
+        ];
+
+        $component->set('data.images', $newState);
+
+        $component->call('save')->assertHasNoFormErrors();
+
+        $product->refresh();
+        $images = $product->images()->orderBy('sort_order')->get();
+
+        $this->assertCount(2, $images);
+
+        $this->assertSame('products/gallery/g2.webp', $images[0]->image_path);
+        $this->assertSame(1, $images[0]->sort_order);
+        $this->assertSame('Alt 2', $images[0]->alt_text);
+
+        $this->assertSame('products/gallery/g1.webp', $images[1]->image_path);
+        $this->assertSame(2, $images[1]->sort_order);
+        $this->assertSame('Alt 1', $images[1]->alt_text);
+
+        Storage::disk('public')->assertExists('products/gallery/g1.webp');
+        Storage::disk('public')->assertExists('products/gallery/g2.webp');
     }
 
     private function assertCreateFieldHasError(string $field, mixed $value, ?string $rule = null): void

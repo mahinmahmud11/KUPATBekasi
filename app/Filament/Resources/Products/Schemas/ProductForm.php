@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Products\Schemas;
 
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -104,6 +105,25 @@ class ProductForm
                     ->integer()
                     ->minValue(0)
                     ->default(0),
+                Repeater::make('images')
+                    ->label('Galeri Produk')
+                    ->relationship('images')
+                    ->orderColumn('sort_order')
+                    ->defaultItems(0)
+                    ->columnSpanFull()
+                    ->schema([
+                        FileUpload::make('image_path')
+                            ->label('Gambar')
+                            ->image()
+                            ->disk('public')
+                            ->directory('products/gallery')
+                            ->maxSize(2048)
+                            ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                            ->required(),
+                        TextInput::make('alt_text')
+                            ->label('Teks Alternatif')
+                            ->maxLength(255),
+                    ]),
             ])
             ->columns([
                 'default' => 1,
