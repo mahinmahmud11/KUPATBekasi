@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Banners\Schemas;
 
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -32,6 +33,14 @@ class BannerForm
                     ->regex('#^(?:/(?!/)[^\\s]*|https?://[^\\s]+)$#i')
                     ->requiredWith('button_label')
                     ->helperText('Gunakan path internal seperti /produk atau URL lengkap https://...'),
+                FileUpload::make('image_path')
+                    ->label('Gambar Banner')
+                    ->image()
+                    ->disk('public')
+                    ->directory('banners')
+                    ->maxSize(2048)
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->columnSpanFull(),
                 Toggle::make('is_active')
                     ->label('Aktif')
                     ->default(true),

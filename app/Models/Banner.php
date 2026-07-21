@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class Banner extends Model
 {
@@ -19,6 +20,27 @@ class Banner extends Model
         'is_active',
         'sort_order',
     ];
+
+    protected static function booted(): void
+    {
+        static::updated(function (Banner $banner) {
+            if (! $banner->wasChanged('image_path')) {
+                return;
+            }
+
+            $previousImagePath = $banner->getPrevious()['image_path'] ?? null;
+
+            if ($previousImagePath && $previousImagePath !== $banner->image_path) {
+                Storage::disk('public')->delete($previousImagePath);
+            }
+        });
+
+        static::deleted(function (Banner $banner) {
+            if ($banner->image_path) {
+                Storage::disk('public')->delete($banner->image_path);
+            }
+        });
+    }
 
     protected function casts(): array
     {
