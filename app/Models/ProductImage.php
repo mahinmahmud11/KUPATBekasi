@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class ProductImage extends Model
 {
@@ -33,5 +34,23 @@ class ProductImage extends Model
     public function scopeOrdered(Builder $query): Builder
     {
         return $query->orderBy('sort_order')->orderBy('id');
+    }
+
+    protected static function booted(): void
+    {
+        static::updated(function (ProductImage $image) {
+            if ($image->wasChanged('image_path')) {
+                $previousPath = $image->getPrevious()['image_path'] ?? null;
+                if ($previousPath && $previousPath !== $image->image_path) {
+                    Storage::disk('public')->delete($previousPath);
+                }
+            }
+        });
+
+        static::deleted(function (ProductImage $image) {
+            if ($image->image_path) {
+                Storage::disk('public')->delete($image->image_path);
+            }
+        });
     }
 }

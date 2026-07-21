@@ -14,6 +14,8 @@ class Product extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected array $pendingGalleryDeletions = [];
+
     protected $fillable = [
         'partner_id',
         'category_id',
@@ -81,9 +83,20 @@ class Product extends Model
             }
         });
 
+        static::deleting(function (Product $product) {
+            if ($product->isForceDeleting()) {
+                $product->pendingGalleryDeletions = $product->images()->pluck('image_path')->all();
+            }
+        });
+
         static::forceDeleted(function (Product $product) {
             if ($product->main_image_path) {
                 Storage::disk('public')->delete($product->main_image_path);
+            }
+
+            if (! empty($product->pendingGalleryDeletions)) {
+                Storage::disk('public')->delete($product->pendingGalleryDeletions);
+                $product->pendingGalleryDeletions = [];
             }
         });
     }
