@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\SiteSetting;
 use BackedEnum;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -52,6 +53,23 @@ class SiteSettings extends Page
                 ->validationMessages([
                     'regex' => 'Instagram harus berupa URL lengkap yang diawali http:// atau https://.',
                 ]),
+            FileUpload::make('logo_path')
+                ->label('Logo Situs')
+                ->image()
+                ->disk('public')
+                ->directory('site-settings/logos')
+                ->maxSize(2048)
+                ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                ->columnSpanFull(),
+            FileUpload::make('favicon_path')
+                ->label('Favicon')
+                ->image()
+                ->disk('public')
+                ->directory('site-settings/favicons')
+                ->maxSize(512)
+                ->acceptedFileTypes(['image/png', 'image/webp'])
+                ->helperText('Gunakan gambar persegi PNG atau WebP, maksimal 512 KB.')
+                ->columnSpanFull(),
         ])->columns(['default' => 1, 'md' => 2])->statePath('data');
     }
 
@@ -69,6 +87,6 @@ class SiteSettings extends Page
     /** @return array<int, string> */
     private function fields(): array
     {
-        return ['site_name', 'tagline', 'about_summary', 'contact_whatsapp', 'contact_email', 'address', 'instagram_url'];
+        return ['site_name', 'tagline', 'about_summary', 'contact_whatsapp', 'contact_email', 'address', 'instagram_url', 'logo_path', 'favicon_path'];
     }
 }

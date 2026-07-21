@@ -6,6 +6,8 @@ use App\Filament\Pages\SiteSettings;
 use App\Models\SiteSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -29,17 +31,156 @@ class SiteSettingsPageTest extends TestCase
         $this->assertSame(config('app.name'), SiteSetting::query()->firstOrFail()->site_name);
     }
 
+    public function test_singleton_kosong_dapat_menyimpan_logo_dan_favicon(): void
+    {
+        Storage::fake('public');
+        $logo = UploadedFile::fake()->image('logo.webp')->size(1024);
+        $favicon = UploadedFile::fake()->image('favicon.webp')->size(256);
+
+        $this->actingAs(User::factory()->admin()->create());
+        Livewire::test(SiteSettings::class)
+            ->fillForm(array_merge($this->validData(), ['logo_path' => [$logo], 'favicon_path' => [$favicon]]))
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(1, SiteSetting::query()->count());
+        $setting = SiteSetting::query()->firstOrFail();
+
+        $this->assertStringStartsWith('site-settings/logos/', $setting->logo_path);
+        $this->assertStringStartsWith('site-settings/favicons/', $setting->favicon_path);
+
+        Storage::disk('public')->assertExists($setting->logo_path);
+        Storage::disk('public')->assertExists($setting->favicon_path);
+    }
+
+    public function test_logo_dan_favicon_non_gambar_ditolak(): void
+    {
+        Storage::fake('public');
+        $this->assertFieldError('logo_path', UploadedFile::fake()->create('doc.pdf', 100, 'application/pdf'));
+        $this->assertFieldError('favicon_path', UploadedFile::fake()->create('doc.pdf', 100, 'application/pdf'));
+    }
+
+    public function test_logo_di_atas_2_mb_ditolak(): void
+    {
+        Storage::fake('public');
+        $this->assertFieldError('logo_path', UploadedFile::fake()->image('logo.jpg')->size(2049));
+    }
+
+    public function test_favicon_di_atas_512_kb_ditolak(): void
+    {
+        Storage::fake('public');
+        $this->assertFieldError('favicon_path', UploadedFile::fake()->image('favicon.png')->size(513));
+    }
+
+    public function test_penggantian_logo_melalui_form_logo_path(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('site-settings/logos/old.webp', 'old');
+        Storage::disk('public')->put('site-settings/favicons/fav.webp', 'fav');
+
+        SiteSetting::factory()->create(['logo_path' => 'site-settings/logos/old.webp', 'favicon_path' => 'site-settings/favicons/fav.webp']);
+
+        $newFile = UploadedFile::fake()->image('new.jpg')->size(1024);
+
+        $this->actingAs(User::factory()->admin()->create());
+        $component = Livewire::test(SiteSettings::class);
+        $component->fillForm($this->validData());
+
+        $state = $component->get('data.logo_path');
+        $this->assertIsArray($state);
+        $fileKey = array_search('site-settings/logos/old.webp', $state, true);
+        $this->assertNotFalse($fileKey);
+
+        $component->call('callSchemaComponentMethod', 'form.logo_path', 'deleteUploadedFile', ['fileKey' => $fileKey]);
+        $component->set('data.logo_path', [$newFile]);
+        $component->call('save')->assertHasNoFormErrors();
+
+        $setting = SiteSetting::query()->firstOrFail();
+        $this->assertNotSame('site-settings/logos/old.webp', $setting->logo_path);
+        $this->assertStringStartsWith('site-settings/logos/', $setting->logo_path);
+
+        Storage::disk('public')->assertMissing('site-settings/logos/old.webp');
+        Storage::disk('public')->assertExists($setting->logo_path);
+
+        $this->assertSame('site-settings/favicons/fav.webp', $setting->favicon_path);
+        Storage::disk('public')->assertExists('site-settings/favicons/fav.webp');
+    }
+
+    public function test_penggantian_favicon_melalui_form_favicon_path(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('site-settings/logos/logo.webp', 'logo');
+        Storage::disk('public')->put('site-settings/favicons/old.webp', 'old');
+
+        SiteSetting::factory()->create(['logo_path' => 'site-settings/logos/logo.webp', 'favicon_path' => 'site-settings/favicons/old.webp']);
+
+        $newFile = UploadedFile::fake()->image('new.png')->size(256);
+
+        $this->actingAs(User::factory()->admin()->create());
+        $component = Livewire::test(SiteSettings::class);
+        $component->fillForm($this->validData());
+
+        $state = $component->get('data.favicon_path');
+        $this->assertIsArray($state);
+        $fileKey = array_search('site-settings/favicons/old.webp', $state, true);
+        $this->assertNotFalse($fileKey);
+
+        $component->call('callSchemaComponentMethod', 'form.favicon_path', 'deleteUploadedFile', ['fileKey' => $fileKey]);
+        $component->set('data.favicon_path', [$newFile]);
+        $component->call('save')->assertHasNoFormErrors();
+
+        $setting = SiteSetting::query()->firstOrFail();
+        $this->assertNotSame('site-settings/favicons/old.webp', $setting->favicon_path);
+        $this->assertStringStartsWith('site-settings/favicons/', $setting->favicon_path);
+
+        Storage::disk('public')->assertMissing('site-settings/favicons/old.webp');
+        Storage::disk('public')->assertExists($setting->favicon_path);
+
+        $this->assertSame('site-settings/logos/logo.webp', $setting->logo_path);
+        Storage::disk('public')->assertExists('site-settings/logos/logo.webp');
+    }
+
+    public function test_delete_melalui_eloquent_menghapus_kedua_file(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('site-settings/logos/logo.webp', 'logo');
+        Storage::disk('public')->put('site-settings/favicons/fav.webp', 'fav');
+
+        $setting = SiteSetting::factory()->create(['logo_path' => 'site-settings/logos/logo.webp', 'favicon_path' => 'site-settings/favicons/fav.webp']);
+
+        $setting->delete();
+
+        Storage::disk('public')->assertMissing('site-settings/logos/logo.webp');
+        Storage::disk('public')->assertMissing('site-settings/favicons/fav.webp');
+    }
+
+    public function test_delete_aman_untuk_path_null_atau_file_hilang(): void
+    {
+        Storage::fake('public');
+        $setting = SiteSetting::factory()->create(['logo_path' => null, 'favicon_path' => 'site-settings/favicons/missing.webp']);
+
+        $setting->delete();
+        $this->assertSame(0, SiteSetting::query()->count());
+    }
+
     public function test_existing_record_is_updated_without_creating_another_or_changing_media(): void
     {
-        $setting = SiteSetting::factory()->create(['logo_path' => 'logo.webp', 'favicon_path' => 'favicon.webp']);
+        Storage::fake('public');
+        Storage::disk('public')->put('site-settings/logos/logo.webp', 'logo content');
+        Storage::disk('public')->put('site-settings/favicons/favicon.webp', 'favicon content');
+
+        $setting = SiteSetting::factory()->create(['logo_path' => 'site-settings/logos/logo.webp', 'favicon_path' => 'site-settings/favicons/favicon.webp']);
         $this->actingAs(User::factory()->admin()->create());
         Livewire::test(SiteSettings::class)->fillForm($this->validData())->call('save')->assertHasNoFormErrors()
             ->assertNotified('Pengaturan situs berhasil disimpan.');
         $setting->refresh();
         $this->assertSame('KUPAT Bekasi Baru', $setting->site_name);
-        $this->assertSame('logo.webp', $setting->logo_path);
-        $this->assertSame('favicon.webp', $setting->favicon_path);
+        $this->assertSame('site-settings/logos/logo.webp', $setting->logo_path);
+        $this->assertSame('site-settings/favicons/favicon.webp', $setting->favicon_path);
         $this->assertSame(1, SiteSetting::query()->count());
+
+        Storage::disk('public')->assertExists('site-settings/logos/logo.webp');
+        Storage::disk('public')->assertExists('site-settings/favicons/favicon.webp');
     }
 
     public function test_name_and_text_limits_are_validated(): void
