@@ -69,7 +69,7 @@ class HomePageTest extends TestCase
             ->assertSee('Pasar Bekasi')
             ->assertSee('Produk lokal pilihan warga.')
             ->assertSee('<title>Beranda | Pasar Bekasi</title>', false)
-            ->assertSee('<img data-site-logo src="'.Storage::disk('public')->url($logoPath).'" alt="Pasar Bekasi">', false)
+            ->assertSee('data-site-logo', false)
             ->assertSee('src="'.Storage::disk('public')->url($logoPath).'"', false)
             ->assertSee('alt="Pasar Bekasi"', false)
             ->assertSee('href="'.Storage::disk('public')->url($faviconPath).'"', false);

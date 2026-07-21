@@ -15,13 +15,15 @@
         @endif
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body>
+    <body class="flex min-h-screen flex-col bg-gray-50 text-gray-900 antialiased [&>footer]:border-t [&>footer]:border-gray-200 [&>footer]:bg-white [&>header]:border-b [&>header]:border-gray-200 [&>header]:bg-white [&>main]:flex-1">
         <header>
-            @if ($siteSetting?->logo_path)
-                <img data-site-logo src="{{ Storage::disk('public')->url($siteSetting->logo_path) }}" alt="{{ $siteName }}">
-            @else
-                <p>{{ $siteName }}</p>
-            @endif
+            <div class="mx-auto flex min-h-16 max-w-7xl items-center px-4 py-3 sm:px-6 lg:px-8">
+                @if ($siteSetting?->logo_path)
+                    <img class="h-12 w-48 object-cover object-center sm:w-56" data-site-logo src="{{ Storage::disk('public')->url($siteSetting->logo_path) }}" alt="{{ $siteName }}">
+                @else
+                    <p class="text-lg font-semibold">{{ $siteName }}</p>
+                @endif
+            </div>
         </header>
 
         <main>
@@ -29,10 +31,12 @@
         </main>
 
         <footer>
-            <p>{{ $siteName }}</p>
-            @if ($siteSetting?->tagline)
-                <p>{{ $siteSetting->tagline }}</p>
-            @endif
+            <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+                <p class="font-semibold">{{ $siteName }}</p>
+                @if ($siteSetting?->tagline)
+                    <p class="mt-1 text-sm text-gray-600">{{ $siteSetting->tagline }}</p>
+                @endif
+            </div>
         </footer>
     </body>
 </html>
