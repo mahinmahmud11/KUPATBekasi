@@ -41,11 +41,17 @@ class SiteSettings extends Page
             TextInput::make('tagline')->label('Tagline')->maxLength(255),
             Textarea::make('about_summary')->label('Ringkasan Tentang')->maxLength(2000)->columnSpanFull(),
             TextInput::make('contact_whatsapp')->label('WhatsApp')->regex('/^62[0-9]{8,13}$/')->maxLength(15)
+                ->validationMessages([
+                    'regex' => 'Nomor WhatsApp harus diawali 62 dan hanya berisi angka.',
+                ])
                 ->helperText('Gunakan nomor dummy berformat 628000000000.'),
             TextInput::make('contact_email')->label('Email')->email()->maxLength(255),
             Textarea::make('address')->label('Alamat')->maxLength(2000)->columnSpanFull(),
             TextInput::make('instagram_url')->label('Instagram')->maxLength(2048)
-                ->regex('#^https?://[^\\s]+$#i'),
+                ->regex('#^https?://[^\\s]+$#i')
+                ->validationMessages([
+                    'regex' => 'Instagram harus berupa URL lengkap yang diawali http:// atau https://.',
+                ]),
         ])->columns(['default' => 1, 'md' => 2])->statePath('data');
     }
 

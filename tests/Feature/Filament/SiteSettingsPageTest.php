@@ -53,8 +53,14 @@ class SiteSettingsPageTest extends TestCase
     {
         $this->assertFieldAccepted('contact_whatsapp', '628000000000');
         foreach (['0800000000', '62abc', '62 8000', '+628000000000'] as $value) {
-            $this->assertFieldError('contact_whatsapp', $value);
+            $this->assertFieldError('contact_whatsapp', $value, 'regex');
         }
+
+        $this->actingAs(User::factory()->admin()->create());
+        $component = Livewire::test(SiteSettings::class)->fillForm(array_merge($this->validData(), ['contact_whatsapp' => '0800000000']))
+            ->call('save')->assertHasErrors(['data.contact_whatsapp']);
+
+        $this->assertSame('Nomor WhatsApp harus diawali 62 dan hanya berisi angka.', $component->errors()->first('data.contact_whatsapp'));
     }
 
     public function test_email_validation(): void
@@ -68,8 +74,14 @@ class SiteSettingsPageTest extends TestCase
         $this->assertFieldAccepted('instagram_url', 'http://example.test/profil');
         $this->assertFieldAccepted('instagram_url', 'https://example.test/profil');
         foreach (['/profil', 'profil', 'javascript:alert(1)', 'data:text/plain,test', '//example.test'] as $value) {
-            $this->assertFieldError('instagram_url', $value);
+            $this->assertFieldError('instagram_url', $value, 'regex');
         }
+
+        $this->actingAs(User::factory()->admin()->create());
+        $component = Livewire::test(SiteSettings::class)->fillForm(array_merge($this->validData(), ['instagram_url' => 'profil']))
+            ->call('save')->assertHasErrors(['data.instagram_url']);
+
+        $this->assertSame('Instagram harus berupa URL lengkap yang diawali http:// atau https://.', $component->errors()->first('data.instagram_url'));
     }
 
     public function test_instagram_url_length_matches_the_expanded_schema(): void
