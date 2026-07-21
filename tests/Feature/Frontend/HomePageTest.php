@@ -2,6 +2,10 @@
 
 namespace Tests\Feature\Frontend;
 
+use App\Models\Banner;
+use App\Models\Category;
+use App\Models\Partner;
+use App\Models\Product;
 use App\Models\SiteSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -75,5 +79,131 @@ class HomePageTest extends TestCase
             ->assertSee('href="'.Storage::disk('public')->url($faviconPath).'"', false);
 
         $this->assertSame(1, SiteSetting::query()->count());
+    }
+
+    public function test_home_displays_the_first_ordered_active_banner(): void
+    {
+        $this->withoutVite();
+        Storage::fake('public');
+
+        $imagePath = 'banners/hero.webp';
+        Storage::disk('public')->put($imagePath, 'hero image');
+
+        $laterBanner = Banner::factory()->create([
+            'title' => 'Banner Aktif Berikutnya',
+            'is_active' => true,
+            'sort_order' => 20,
+        ]);
+        $inactiveBanner = Banner::factory()->create([
+            'title' => 'Banner Tidak Aktif',
+            'is_active' => false,
+            'sort_order' => 0,
+        ]);
+        $heroBanner = Banner::factory()->create([
+            'title' => 'Belanja Produk Lokal',
+            'subtitle' => 'Temukan pilihan produk UMKM Bekasi.',
+            'image_path' => $imagePath,
+            'button_label' => 'Lihat Katalog',
+            'button_url' => 'https://example.test/produk',
+            'is_active' => true,
+            'sort_order' => 10,
+        ]);
+
+        $bannerCount = Banner::query()->count();
+        $response = $this->get(route('home'));
+
+        $response
+            ->assertOk()
+            ->assertSee($heroBanner->title)
+            ->assertSee($heroBanner->subtitle)
+            ->assertSee('src="'.Storage::disk('public')->url($imagePath).'"', false)
+            ->assertSee('alt="'.$heroBanner->title.'"', false)
+            ->assertSee($heroBanner->button_label)
+            ->assertSee('href="'.$heroBanner->button_url.'"', false)
+            ->assertDontSee($laterBanner->title)
+            ->assertDontSee($inactiveBanner->title);
+
+        $this->assertSame($bannerCount, Banner::query()->count());
+    }
+
+    public function test_hero_button_supports_an_internal_url(): void
+    {
+        $this->withoutVite();
+
+        Banner::factory()->create([
+            'button_label' => 'Jelajahi Produk',
+            'button_url' => '/produk',
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('href="/produk"', false)
+            ->assertSee('Jelajahi Produk');
+    }
+
+    public function test_home_displays_the_shell_fallback_when_no_active_banner_exists(): void
+    {
+        $this->withoutVite();
+
+        $inactiveBanner = Banner::factory()->create([
+            'title' => 'Banner Tersembunyi',
+            'is_active' => false,
+        ]);
+
+        $bannerCount = Banner::query()->count();
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('<h1>KUPATBekasi</h1>', false)
+            ->assertSee('Halaman publik KUPATBekasi sedang disiapkan.')
+            ->assertDontSee($inactiveBanner->title);
+
+        $this->assertSame($bannerCount, Banner::query()->count());
+    }
+
+    public function test_home_sections_only_display_active_featured_content(): void
+    {
+        $this->withoutVite();
+
+        $category = Category::factory()->create(['name' => 'Kategori Aktif']);
+        $inactiveCategory = Category::factory()->create(['name' => 'Kategori Nonaktif', 'is_active' => false]);
+        $partner = Partner::factory()->create(['name' => 'Mitra Unggulan Aktif', 'is_featured' => true]);
+        $inactivePartner = Partner::factory()->create(['name' => 'Mitra Nonaktif', 'is_featured' => true, 'is_active' => false]);
+        Product::factory()->for($partner)->for($category)->create(['name' => 'Produk Unggulan Aktif', 'is_featured' => true]);
+        Product::factory()->for($inactivePartner)->for($category)->create(['name' => 'Produk Mitra Nonaktif', 'is_featured' => true]);
+        Product::factory()->for($partner)->for($inactiveCategory)->create(['name' => 'Produk Kategori Nonaktif', 'is_featured' => true]);
+
+        $counts = [Category::query()->count(), Partner::query()->count(), Product::query()->count()];
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Kategori Aktif')
+            ->assertSee('Mitra Unggulan Aktif')
+            ->assertSee('Produk Unggulan Aktif')
+            ->assertDontSee('Kategori Nonaktif')
+            ->assertDontSee('Mitra Nonaktif')
+            ->assertDontSee('Produk Mitra Nonaktif')
+            ->assertDontSee('Produk Kategori Nonaktif');
+
+        $this->assertSame($counts, [Category::query()->count(), Partner::query()->count(), Product::query()->count()]);
+    }
+
+    public function test_layout_navigation_uses_public_named_routes_and_meta_description_is_optional(): void
+    {
+        $this->withoutVite();
+
+        $response = $this->get(route('home'));
+
+        $response
+            ->assertOk()
+            ->assertSee('href="'.route('home').'"', false)
+            ->assertSee('href="'.route('products.index').'"', false)
+            ->assertSee('href="'.route('partners.index').'"', false)
+            ->assertSee('href="'.route('about').'"', false)
+            ->assertSee('href="'.route('contact').'"', false)
+            ->assertSee('href="'.route('privacy').'"', false)
+            ->assertSee('<meta property="og:title" content="Beranda | '.config('app.name').'">', false)
+            ->assertSee('<link rel="canonical" href="'.route('home').'">', false)
+            ->assertDontSee('<meta name="description"', false);
     }
 }
