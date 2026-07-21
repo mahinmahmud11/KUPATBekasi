@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
@@ -67,5 +68,23 @@ class Product extends Model
     public function scopeOrdered(Builder $query): Builder
     {
         return $query->orderBy('sort_order')->orderBy('id');
+    }
+
+    protected static function booted(): void
+    {
+        static::updated(function (Product $product) {
+            if ($product->wasChanged('main_image_path')) {
+                $previousPath = $product->getPrevious()['main_image_path'] ?? null;
+                if ($previousPath && $previousPath !== $product->main_image_path) {
+                    Storage::disk('public')->delete($previousPath);
+                }
+            }
+        });
+
+        static::forceDeleted(function (Product $product) {
+            if ($product->main_image_path) {
+                Storage::disk('public')->delete($product->main_image_path);
+            }
+        });
     }
 }

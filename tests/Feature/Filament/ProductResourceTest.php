@@ -13,6 +13,8 @@ use App\Models\Product;
 use App\Models\SiteSetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -243,11 +245,113 @@ class ProductResourceTest extends TestCase
         $this->assertTrue($products->every(fn (Product $product): bool => $product->relationLoaded('category')));
     }
 
-    public function test_main_image_path_is_not_changed_through_the_form(): void
+    public function test_valid_main_image_can_be_uploaded_and_path_saved(): void
     {
-        $product = Product::factory()->create(['main_image_path' => 'products/existing.webp']);
-        $this->actingAs(User::factory()->admin()->create());
+        Storage::fake('public');
+        $image = UploadedFile::fake()->image('main.jpg')->size(1024);
 
+        $partner = Partner::factory()->create();
+        $category = Category::factory()->create();
+
+        $this->actingAs(User::factory()->admin()->create());
+        Livewire::test(CreateProduct::class)
+            ->fillForm(array_merge($this->validProductData($partner, $category), [
+                'main_image_path' => $image,
+            ]))
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $product = Product::query()->latest('id')->first();
+        $this->assertNotNull($product->main_image_path);
+        $this->assertStringStartsWith('products/main/', $product->main_image_path);
+        Storage::disk('public')->assertExists($product->main_image_path);
+    }
+
+    public function test_non_image_file_is_rejected_for_main_image(): void
+    {
+        Storage::fake('public');
+        $doc = UploadedFile::fake()->create('document.pdf', 1024, 'application/pdf');
+
+        $partner = Partner::factory()->create();
+        $category = Category::factory()->create();
+
+        $this->actingAs(User::factory()->admin()->create());
+        Livewire::test(CreateProduct::class)
+            ->fillForm(array_merge($this->validProductData($partner, $category), [
+                'main_image_path' => $doc,
+            ]))
+            ->call('create')
+            ->assertHasFormErrors(['main_image_path']);
+    }
+
+    public function test_file_exceeding_2mb_is_rejected_for_main_image(): void
+    {
+        Storage::fake('public');
+        $large = UploadedFile::fake()->image('large.jpg')->size(2500);
+
+        $partner = Partner::factory()->create();
+        $category = Category::factory()->create();
+
+        $this->actingAs(User::factory()->admin()->create());
+        Livewire::test(CreateProduct::class)
+            ->fillForm(array_merge($this->validProductData($partner, $category), [
+                'main_image_path' => $large,
+            ]))
+            ->call('create')
+            ->assertHasFormErrors(['main_image_path']);
+    }
+
+    public function test_replacing_main_image_via_edit_form_removes_old_file(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('products/main/old.webp', 'old content');
+        $newFile = UploadedFile::fake()->image('new-main.jpg')->size(1024);
+
+        $product = Product::factory()->create(['main_image_path' => 'products/main/old.webp']);
+
+        Storage::disk('public')->assertExists('products/main/old.webp');
+
+        $this->actingAs(User::factory()->admin()->create());
+        $component = Livewire::test(EditProduct::class, ['record' => $product->getRouteKey()]);
+
+        $component->fillForm($this->validProductData($product->partner, $product->category));
+
+        $state = $component->get('data.main_image_path');
+        $this->assertIsArray($state);
+        $this->assertContains('products/main/old.webp', $state);
+
+        $oldFileKey = array_search('products/main/old.webp', $state, true);
+        $this->assertNotFalse($oldFileKey);
+
+        $component->call(
+            'callSchemaComponentMethod',
+            'form.main_image_path',
+            'deleteUploadedFile',
+            ['fileKey' => $oldFileKey],
+        );
+
+        $newState = $component->get('data.main_image_path');
+        $this->assertNotContains('products/main/old.webp', $newState);
+
+        $component->set('data.main_image_path', [$newFile]);
+        $component->call('save')->assertHasNoFormErrors();
+
+        $product->refresh();
+
+        $this->assertNotSame('products/main/old.webp', $product->main_image_path);
+        $this->assertStringStartsWith('products/main/', $product->main_image_path);
+        Storage::disk('public')->assertExists($product->main_image_path);
+        Storage::disk('public')->assertMissing('products/main/old.webp');
+    }
+
+    public function test_edit_without_new_upload_retains_main_image_path_and_file(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('products/main/existing.webp', 'dummy');
+
+        $product = Product::factory()->create(['main_image_path' => 'products/main/existing.webp']);
+
+        $this->actingAs(User::factory()->admin()->create());
         Livewire::test(EditProduct::class, ['record' => $product->getRouteKey()])
             ->fillForm(array_merge($this->validProductData($product->partner, $product->category), [
                 'name' => 'Produk Tanpa Perubahan Gambar',
@@ -256,7 +360,83 @@ class ProductResourceTest extends TestCase
             ->call('save')
             ->assertHasNoFormErrors();
 
-        $this->assertSame('products/existing.webp', $product->refresh()->main_image_path);
+        $product->refresh();
+        $this->assertSame('products/main/existing.webp', $product->main_image_path);
+        Storage::disk('public')->assertExists('products/main/existing.webp');
+    }
+
+    public function test_consecutive_updates_do_not_leak_old_main_image_path_state(): void
+    {
+        Storage::fake('public');
+
+        // 1 & 2. Create original file and product
+        Storage::disk('public')->put('products/main/original.webp', 'original content');
+        $product = Product::factory()->create(['main_image_path' => 'products/main/original.webp']);
+
+        // 3. Create replacement file
+        Storage::disk('public')->put('products/main/replacement.webp', 'replacement content');
+
+        // 4. Update main_image_path
+        $product->main_image_path = 'products/main/replacement.webp';
+        $product->save();
+
+        // 5. Verify first update
+        Storage::disk('public')->assertMissing('products/main/original.webp');
+        Storage::disk('public')->assertExists('products/main/replacement.webp');
+        $this->assertSame('products/main/replacement.webp', $product->main_image_path);
+
+        // 6. Re-create original file to detect state leak
+        Storage::disk('public')->put('products/main/original.webp', 'leaked original content');
+
+        // 7. Update another attribute
+        $product->name = 'Nama Produk Baru';
+        $product->save();
+
+        // 8. Verify second update
+        Storage::disk('public')->assertExists('products/main/original.webp');
+        Storage::disk('public')->assertExists('products/main/replacement.webp');
+        $this->assertSame('products/main/replacement.webp', $product->main_image_path);
+    }
+
+    public function test_soft_delete_retains_main_image_file(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('products/main/existing.webp', 'dummy');
+
+        $product = Product::factory()->create(['main_image_path' => 'products/main/existing.webp']);
+
+        $this->actingAs(User::factory()->admin()->create());
+        Livewire::test(EditProduct::class, ['record' => $product->getRouteKey()])
+            ->callAction('delete');
+
+        $this->assertSoftDeleted($product);
+        Storage::disk('public')->assertExists('products/main/existing.webp');
+    }
+
+    public function test_force_delete_removes_main_image_file(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('products/main/existing.webp', 'dummy');
+
+        $product = Product::factory()->create(['main_image_path' => 'products/main/existing.webp']);
+
+        $product->forceDelete();
+
+        $this->assertDatabaseMissing('products', ['id' => $product->id]);
+        Storage::disk('public')->assertMissing('products/main/existing.webp');
+    }
+
+    public function test_force_delete_is_safe_when_path_is_null_or_file_missing(): void
+    {
+        Storage::fake('public');
+
+        $product1 = Product::factory()->create(['main_image_path' => null]);
+        $product1->forceDelete();
+        $this->assertDatabaseMissing('products', ['id' => $product1->id]);
+
+        $product2 = Product::factory()->create(['main_image_path' => 'products/main/missing.webp']);
+        $product2->forceDelete();
+        $this->assertDatabaseMissing('products', ['id' => $product2->id]);
     }
 
     public function test_demo_dataset_remains_complete_after_normal_seeding(): void

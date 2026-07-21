@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Schemas;
 
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -82,6 +83,14 @@ class ProductForm
                     ])
                     ->required()
                     ->default('available'),
+                FileUpload::make('main_image_path')
+                    ->label('Gambar Utama Produk')
+                    ->image()
+                    ->disk('public')
+                    ->directory('products/main')
+                    ->maxSize(2048)
+                    ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                    ->columnSpanFull(),
                 Toggle::make('is_featured')
                     ->label('Produk Unggulan')
                     ->default(false),
