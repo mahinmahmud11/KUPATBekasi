@@ -26,7 +26,10 @@
                 </select>
             </div>
             <button class="rounded-lg bg-gray-900 px-5 py-3 font-semibold text-white hover:bg-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" type="submit">Cari</button>
-            @if ($search !== '' || $categorySlug !== '' || $partnerSlug !== '')
+            @php
+                $hasFilter = $search !== '' || $categorySlug !== '' || $partnerSlug !== '';
+            @endphp
+            @if ($hasFilter && $products->isNotEmpty())
                 <a class="rounded-lg border border-gray-300 px-5 py-3 text-center font-semibold hover:border-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" href="{{ route('products.index') }}">Reset filter</a>
             @endif
         </form>
@@ -39,7 +42,29 @@
             </div>
             <div class="mt-8">{{ $products->links() }}</div>
         @else
-            <x-ui.empty-state class="mt-8" message="Produk yang dicari belum tersedia." />
+            @if ($hasFilter)
+                @php
+                    $filterText = [];
+                    if ($search !== '') $filterText[] = 'kata kunci "' . $search . '"';
+                    if ($categorySlug !== '') {
+                        $catName = $categories->firstWhere('slug', $categorySlug)?->name;
+                        if ($catName) $filterText[] = 'kategori "' . $catName . '"';
+                    }
+                    if ($partnerSlug !== '') {
+                        $partnerName = $partners->firstWhere('slug', $partnerSlug)?->name;
+                        if ($partnerName) $filterText[] = 'mitra "' . $partnerName . '"';
+                    }
+                    $message = 'Tidak ada produk yang sesuai dengan pencarian atau filter yang dipilih' . (!empty($filterText) ? ' (' . implode(', ', $filterText) . ')' : '') . '.';
+                @endphp
+                <div class="mt-8 text-center">
+                    <x-ui.empty-state :message="$message" />
+                    <div class="mt-4">
+                        <a class="inline-block rounded-lg border border-gray-300 px-5 py-3 text-center font-semibold hover:border-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" href="{{ route('products.index') }}">Hapus filter</a>
+                    </div>
+                </div>
+            @else
+                <x-ui.empty-state class="mt-8" message="Produk yang dicari belum tersedia." />
+            @endif
         @endif
     </div>
 </x-layouts.public>

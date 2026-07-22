@@ -60,7 +60,56 @@ class ProductIndexTest extends TestCase
     public function test_catalog_has_an_empty_state(): void
     {
         $this->withoutVite();
-        $this->get(route('products.index'))->assertOk()->assertSee('Produk yang dicari belum tersedia.');
+        $this->get(route('products.index'))
+            ->assertOk()
+            ->assertSee('Produk yang dicari belum tersedia.')
+            ->assertDontSee('Hapus filter')
+            ->assertDontSee('Reset filter');
+    }
+
+    public function test_catalog_empty_state_with_active_filter(): void
+    {
+        $this->withoutVite();
+        $category = Category::factory()->create(['name' => 'Kategori Pangan', 'slug' => 'kategori-pangan']);
+        $partner = Partner::factory()->create(['name' => 'Mitra ABC', 'slug' => 'mitra-abc']);
+        Product::factory()->for($partner)->for($category)->create(['name' => 'Produk Asli']);
+
+        $response = $this->get(route('products.index', ['q' => 'Palsu', 'category' => 'kategori-pangan', 'partner' => 'mitra-abc']));
+
+        $response->assertOk()
+            ->assertSee('Tidak ada produk yang sesuai dengan pencarian atau filter yang dipilih (kata kunci &quot;Palsu&quot;, kategori &quot;Kategori Pangan&quot;, mitra &quot;Mitra ABC&quot;).', false)
+            ->assertSee('Hapus filter')
+            ->assertSee('href="'.route('products.index').'"', false)
+            ->assertDontSee('Reset filter');
+    }
+
+    public function test_catalog_empty_state_with_only_q_filter(): void
+    {
+        $this->withoutVite();
+
+        $response = $this->get(route('products.index', ['q' => 'TidakAdaProdukIni']));
+
+        $response->assertOk()
+            ->assertSee('Tidak ada produk yang sesuai dengan pencarian atau filter yang dipilih (kata kunci &quot;TidakAdaProdukIni&quot;).', false)
+            ->assertSee('Hapus filter')
+            ->assertSee('href="'.route('products.index').'"', false)
+            ->assertDontSee('Reset filter')
+            ->assertDontSee('Produk yang dicari belum tersedia.');
+    }
+
+    public function test_catalog_empty_state_with_only_partner_filter(): void
+    {
+        $this->withoutVite();
+        Partner::factory()->create(['name' => 'Mitra ZZZ', 'slug' => 'mitra-zzz']);
+
+        $response = $this->get(route('products.index', ['partner' => 'mitra-zzz']));
+
+        $response->assertOk()
+            ->assertSee('Tidak ada produk yang sesuai dengan pencarian atau filter yang dipilih (mitra &quot;Mitra ZZZ&quot;).', false)
+            ->assertSee('Hapus filter')
+            ->assertSee('href="'.route('products.index').'"', false)
+            ->assertDontSee('Reset filter')
+            ->assertDontSee('Produk yang dicari belum tersedia.');
     }
 
     public function test_catalog_filters_partner_and_preserves_query_on_pagination(): void
@@ -114,6 +163,9 @@ class ProductIndexTest extends TestCase
         $partner1 = Partner::factory()->create(['name' => 'Mitra Aktif', 'slug' => 'mitra-aktif']);
         $partner2 = Partner::factory()->create(['name' => 'Mitra Dua', 'slug' => 'mitra-dua']);
         $inactivePartner = Partner::factory()->create(['name' => 'Mitra Nonaktif', 'slug' => 'mitra-nonaktif', 'is_active' => false]);
+
+        Product::factory()->for($partner1)->for($category1)->create(['name' => 'Keripik Tempe']);
+        Product::factory()->for($partner2)->for($category2)->create(['name' => 'Keripik Singkong']);
 
         $this->get(route('products.index'))
             ->assertOk()
