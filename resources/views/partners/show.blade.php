@@ -1,4 +1,9 @@
-<x-layouts.public :title="$partner->name" :description="$partner->short_description">
+@php
+    $partnerMetadataImagePath = $partner->cover_path ?: $partner->logo_path;
+    $partnerMetadataImage = $partnerMetadataImagePath ? Storage::disk('public')->url($partnerMetadataImagePath) : null;
+@endphp
+
+<x-layouts.public :title="$partner->name" :description="$partner->short_description ?: $partner->description" :image="$partnerMetadataImage" type="profile">
     <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
         <section class="relative overflow-hidden rounded-2xl bg-gray-800 shadow-sm" data-partner-hero>
             @if ($partner->cover_path)

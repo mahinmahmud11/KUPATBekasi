@@ -1,7 +1,16 @@
-@props(['title' => null, 'description' => null])
+@props(['title' => null, 'description' => null, 'image' => null, 'type' => 'website'])
 
 @php
     $siteName = $siteSetting?->site_name ?: config('app.name');
+    $metadataTitle = $title ? $title.' | '.$siteName : $siteName;
+    $canonicalUrl = url()->current();
+    $metadataDescription = preg_replace('/\s+/', ' ', strip_tags((string) ($description ?: $siteSetting?->about_summary ?: $siteSetting?->tagline)));
+    $metadataDescription = $metadataDescription ? Str::limit(trim($metadataDescription), 160, '') : null;
+    $metadataImage = $image ?: ($siteSetting?->logo_path ? Storage::disk('public')->url($siteSetting->logo_path) : null);
+
+    if ($metadataImage && ! Str::startsWith($metadataImage, ['http://', 'https://'])) {
+        $metadataImage = url($metadataImage);
+    }
 @endphp
 
 <!DOCTYPE html>
@@ -9,12 +18,21 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{{ $title ? $title.' | '.$siteName : $siteName }}</title>
-        <meta property="og:title" content="{{ $title ? $title.' | '.$siteName : $siteName }}">
-        <link rel="canonical" href="{{ url()->current() }}">
-        @if ($description)
-            <meta name="description" content="{{ $description }}">
-            <meta property="og:description" content="{{ $description }}">
+        <title>{{ $metadataTitle }}</title>
+        <meta property="og:title" content="{{ $metadataTitle }}">
+        <meta property="og:url" content="{{ $canonicalUrl }}">
+        <meta property="og:type" content="{{ $type }}">
+        <meta name="twitter:card" content="summary">
+        <meta name="twitter:title" content="{{ $metadataTitle }}">
+        <link rel="canonical" href="{{ $canonicalUrl }}">
+        @if ($metadataDescription)
+            <meta name="description" content="{{ $metadataDescription }}">
+            <meta property="og:description" content="{{ $metadataDescription }}">
+            <meta name="twitter:description" content="{{ $metadataDescription }}">
+        @endif
+        @if ($metadataImage)
+            <meta property="og:image" content="{{ $metadataImage }}">
+            <meta name="twitter:image" content="{{ $metadataImage }}">
         @endif
         @if ($siteSetting?->favicon_path)
             <link rel="icon" href="{{ Storage::disk('public')->url($siteSetting->favicon_path) }}">

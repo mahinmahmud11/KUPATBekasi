@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\SiteSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class HomePageTest extends TestCase
@@ -45,7 +46,9 @@ class HomePageTest extends TestCase
             ->assertSee('Nama Aplikasi')
             ->assertSee('<title>Beranda | Nama Aplikasi</title>', false)
             ->assertDontSee('data-site-logo', false)
-            ->assertDontSee('<link rel="icon"', false);
+            ->assertDontSee('<link rel="icon"', false)
+            ->assertDontSee('<meta property="og:image"', false)
+            ->assertDontSee('<meta name="twitter:image"', false);
     }
 
     public function test_public_layout_uses_site_setting_identity_and_media(): void
@@ -76,7 +79,9 @@ class HomePageTest extends TestCase
             ->assertSee('data-site-logo', false)
             ->assertSee('src="'.Storage::disk('public')->url($logoPath).'"', false)
             ->assertSee('alt="Pasar Bekasi"', false)
-            ->assertSee('href="'.Storage::disk('public')->url($faviconPath).'"', false);
+            ->assertSee('href="'.Storage::disk('public')->url($faviconPath).'"', false)
+            ->assertSee('<meta property="og:image" content="'.url(Storage::disk('public')->url($logoPath)).'">', false)
+            ->assertSee('<meta name="twitter:image" content="'.url(Storage::disk('public')->url($logoPath)).'">', false);
 
         $this->assertSame(1, SiteSetting::query()->count());
     }
@@ -121,6 +126,8 @@ class HomePageTest extends TestCase
             ->assertSee($heroBanner->subtitle)
             ->assertSee('src="'.Storage::disk('public')->url($imagePath).'"', false)
             ->assertSee('alt="'.$heroBanner->title.'"', false)
+            ->assertSee('<meta property="og:image" content="'.url(Storage::disk('public')->url($imagePath)).'">', false)
+            ->assertSee('<meta name="twitter:image" content="'.url(Storage::disk('public')->url($imagePath)).'">', false)
             ->assertSee($heroBanner->button_label)
             ->assertSee('href="'.$heroBanner->button_url.'"', false)
             ->assertSee($laterBanner->title)
@@ -238,8 +245,58 @@ class HomePageTest extends TestCase
             ->assertSee('href="'.route('contact').'"', false)
             ->assertSee('href="'.route('privacy').'"', false)
             ->assertSee('<meta property="og:title" content="Beranda | '.config('app.name').'">', false)
+            ->assertSee('<meta name="twitter:title" content="Beranda | '.config('app.name').'">', false)
+            ->assertSee('<meta property="og:url" content="'.route('home').'">', false)
+            ->assertSee('<meta property="og:type" content="website">', false)
+            ->assertSee('<meta name="twitter:card" content="summary">', false)
             ->assertSee('<link rel="canonical" href="'.route('home').'">', false)
             ->assertSee('<meta name="description" content="Temukan produk dan profil UMKM binaan Kota Bekasi melalui katalog digital KUPATBekasi.">', false)
-            ->assertSee('<meta property="og:description" content="Temukan produk dan profil UMKM binaan Kota Bekasi melalui katalog digital KUPATBekasi.">', false);
+            ->assertSee('<meta property="og:description" content="Temukan produk dan profil UMKM binaan Kota Bekasi melalui katalog digital KUPATBekasi.">', false)
+            ->assertSee('<meta name="twitter:description" content="Temukan produk dan profil UMKM binaan Kota Bekasi melalui katalog digital KUPATBekasi.">', false);
+    }
+
+    public function test_home_metadata_falls_back_to_site_setting_logo_when_first_banner_has_no_image(): void
+    {
+        $this->withoutVite();
+        Storage::fake('public');
+
+        $logoPath = 'site-settings/fallback-logo.png';
+        Storage::disk('public')->put($logoPath, 'logo content');
+        SiteSetting::factory()->create(['logo_path' => $logoPath]);
+
+        Banner::factory()->create([
+            'image_path' => null,
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('<meta property="og:image" content="'.url(Storage::disk('public')->url($logoPath)).'">', false)
+            ->assertSee('<meta name="twitter:image" content="'.url(Storage::disk('public')->url($logoPath)).'">', false);
+    }
+
+    public function test_home_metadata_description_uses_about_summary_when_available_and_normalizes_text(): void
+    {
+        $this->withoutVite();
+
+        $rawAbout = '<p>Program   <strong>pembinaan</strong> UMKM Kota Bekasi '.str_repeat('merupakan wadah etalase digital resmi. ', 6).'</p>';
+        SiteSetting::factory()->create([
+            'about_summary' => $rawAbout,
+        ]);
+
+        $expectedDescription = Str::limit(trim((string) preg_replace('/\s+/', ' ', strip_tags($rawAbout))), 160, '');
+
+        $response = $this->get(route('home'));
+
+        $response
+            ->assertOk()
+            ->assertSee('<meta name="description" content="'.$expectedDescription.'">', false)
+            ->assertSee('<meta property="og:description" content="'.$expectedDescription.'">', false)
+            ->assertSee('<meta name="twitter:description" content="'.$expectedDescription.'">', false);
+
+        $this->assertLessThanOrEqual(160, mb_strlen($expectedDescription));
+        $this->assertStringContainsString('Program pembinaan UMKM Kota Bekasi', $expectedDescription);
+        $this->assertStringStartsNotWith('<p>', $expectedDescription);
     }
 }

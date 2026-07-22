@@ -6,8 +6,10 @@ use App\Models\Category;
 use App\Models\Partner;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Models\SiteSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class ProductShowTest extends TestCase
@@ -41,6 +43,13 @@ class ProductShowTest extends TestCase
             ->assertSee('href="'.route('home').'"', false)
             ->assertSee('href="'.route('products.index').'"', false)
             ->assertSee('<h1 class="mt-4 break-words text-3xl font-bold tracking-tight sm:text-4xl">'.$product->name.'</h1>', false)
+            ->assertSee('<meta property="og:title" content="'.$product->name.' | '.config('app.name').'">', false)
+            ->assertSee('<meta name="twitter:title" content="'.$product->name.' | '.config('app.name').'">', false)
+            ->assertSee('<meta property="og:url" content="'.route('products.show', $product).'">', false)
+            ->assertSee('<link rel="canonical" href="'.route('products.show', $product).'">', false)
+            ->assertSee('<meta property="og:type" content="product">', false)
+            ->assertSee('<meta property="og:image" content="'.url(Storage::disk('public')->url('products/main.webp')).'">', false)
+            ->assertSee('<meta name="twitter:image" content="'.url(Storage::disk('public')->url('products/main.webp')).'">', false)
             ->assertSee('data-product-category-badge', false)
             ->assertSee('href="'.route('categories.show', $category).'"', false)
             ->assertSee('data-product-stock-badge', false)
@@ -117,8 +126,39 @@ class ProductShowTest extends TestCase
             ->assertOk()
             ->assertSee('data-gallery-active-image', false)
             ->assertSee('src="'.Storage::disk('public')->url('products/first.webp').'" alt="Gambar Pertama" data-gallery-active-image', false)
+            ->assertSee('<meta property="og:image" content="'.url(Storage::disk('public')->url('products/first.webp')).'">', false)
+            ->assertSee('<meta name="twitter:image" content="'.url(Storage::disk('public')->url('products/first.webp')).'">', false)
             ->assertSeeInOrder(['Gambar Pertama', 'Gambar Lanjutan'])
             ->assertDontSee('Duplikat');
+    }
+
+    public function test_product_metadata_uses_site_logo_fallback_and_normalizes_description(): void
+    {
+        $this->withoutVite();
+        Storage::fake('public');
+
+        $logoPath = 'site-settings/social-logo.webp';
+        Storage::disk('public')->put($logoPath, 'logo');
+        SiteSetting::factory()->create(['logo_path' => $logoPath]);
+        $description = '<strong>'.str_repeat('Deskripsi produk panjang   ', 12).'</strong>';
+        $product = Product::factory()->create([
+            'short_description' => null,
+            'description' => $description,
+            'main_image_path' => null,
+        ]);
+        $counts = [Product::query()->count(), SiteSetting::query()->count()];
+        $expectedDescription = Str::limit(trim((string) preg_replace('/\s+/', ' ', strip_tags($description))), 160, '');
+
+        $this->get(route('products.show', $product))
+            ->assertOk()
+            ->assertSee('<meta name="description" content="'.$expectedDescription.'">', false)
+            ->assertSee('<meta property="og:description" content="'.$expectedDescription.'">', false)
+            ->assertSee('<meta name="twitter:description" content="'.$expectedDescription.'">', false)
+            ->assertSee('<meta property="og:image" content="'.url(Storage::disk('public')->url($logoPath)).'">', false)
+            ->assertSee('<meta name="twitter:image" content="'.url(Storage::disk('public')->url($logoPath)).'">', false);
+
+        $this->assertLessThanOrEqual(160, mb_strlen($expectedDescription));
+        $this->assertSame($counts, [Product::query()->count(), SiteSetting::query()->count()]);
     }
 
     public function test_single_image_gallery_hides_navigation_buttons(): void
@@ -142,7 +182,9 @@ class ProductShowTest extends TestCase
         $this->get(route('products.show', $product))
             ->assertOk()
             ->assertSee('Gambar belum tersedia')
-            ->assertDontSee('data-product-gallery', false);
+            ->assertDontSee('data-product-gallery', false)
+            ->assertDontSee('<meta property="og:image"', false)
+            ->assertDontSee('<meta name="twitter:image"', false);
     }
 
     public function test_non_public_product_returns_not_found(): void

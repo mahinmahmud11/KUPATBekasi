@@ -5,8 +5,10 @@ namespace Tests\Feature\Frontend;
 use App\Models\Category;
 use App\Models\Partner;
 use App\Models\Product;
+use App\Models\SiteSetting;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class PartnerShowTest extends TestCase
@@ -52,6 +54,13 @@ class PartnerShowTest extends TestCase
             ->assertSee('data-partner-logo', false)
             ->assertSee('src="'.Storage::disk('public')->url($logoPath).'"', false)
             ->assertSee('alt="Logo '.$partner->name.'"', false)
+            ->assertSee('<meta property="og:title" content="'.$partner->name.' | '.config('app.name').'">', false)
+            ->assertSee('<meta name="twitter:title" content="'.$partner->name.' | '.config('app.name').'">', false)
+            ->assertSee('<meta property="og:url" content="'.route('partners.show', $partner).'">', false)
+            ->assertSee('<link rel="canonical" href="'.route('partners.show', $partner).'">', false)
+            ->assertSee('<meta property="og:type" content="profile">', false)
+            ->assertSee('<meta property="og:image" content="'.url(Storage::disk('public')->url($coverPath)).'">', false)
+            ->assertSee('<meta name="twitter:image" content="'.url(Storage::disk('public')->url($coverPath)).'">', false)
             ->assertSee($partner->name)
             ->assertSee($partner->short_description)
             ->assertSee($partner->description)
@@ -67,6 +76,66 @@ class PartnerShowTest extends TestCase
             ->assertDontSee($other->name);
 
         $this->assertSame($counts, [Partner::query()->count(), Product::query()->count()]);
+    }
+
+    public function test_partner_metadata_uses_partner_logo_then_site_logo_fallback(): void
+    {
+        $this->withoutVite();
+        Storage::fake('public');
+
+        $partnerLogoPath = 'partners/logos/social.webp';
+        $siteLogoPath = 'site-settings/social.webp';
+        Storage::disk('public')->put($partnerLogoPath, 'partner logo');
+        Storage::disk('public')->put($siteLogoPath, 'site logo');
+        SiteSetting::factory()->create(['logo_path' => $siteLogoPath]);
+
+        $partnerWithLogo = Partner::factory()->create([
+            'cover_path' => null,
+            'logo_path' => $partnerLogoPath,
+        ]);
+        $partnerWithoutMedia = Partner::factory()->create([
+            'cover_path' => null,
+            'logo_path' => null,
+        ]);
+        $counts = [Partner::query()->count(), SiteSetting::query()->count()];
+
+        $this->get(route('partners.show', $partnerWithLogo))
+            ->assertOk()
+            ->assertSee('<meta property="og:image" content="'.url(Storage::disk('public')->url($partnerLogoPath)).'">', false)
+            ->assertSee('<meta name="twitter:image" content="'.url(Storage::disk('public')->url($partnerLogoPath)).'">', false);
+
+        $this->get(route('partners.show', $partnerWithoutMedia))
+            ->assertOk()
+            ->assertSee('<meta property="og:image" content="'.url(Storage::disk('public')->url($siteLogoPath)).'">', false)
+            ->assertSee('<meta name="twitter:image" content="'.url(Storage::disk('public')->url($siteLogoPath)).'">', false);
+
+        $this->assertSame($counts, [Partner::query()->count(), SiteSetting::query()->count()]);
+    }
+
+    public function test_partner_metadata_normalizes_full_description_and_omits_missing_image(): void
+    {
+        $this->withoutVite();
+
+        $description = '<p>'.str_repeat('Deskripsi mitra panjang   ', 12).'</p>';
+        $partner = Partner::factory()->create([
+            'short_description' => null,
+            'description' => $description,
+            'logo_path' => null,
+            'cover_path' => null,
+        ]);
+        $count = Partner::query()->count();
+        $expectedDescription = Str::limit(trim((string) preg_replace('/\s+/', ' ', strip_tags($description))), 160, '');
+
+        $this->get(route('partners.show', $partner))
+            ->assertOk()
+            ->assertSee('<meta name="description" content="'.$expectedDescription.'">', false)
+            ->assertSee('<meta property="og:description" content="'.$expectedDescription.'">', false)
+            ->assertSee('<meta name="twitter:description" content="'.$expectedDescription.'">', false)
+            ->assertDontSee('<meta property="og:image"', false)
+            ->assertDontSee('<meta name="twitter:image"', false);
+
+        $this->assertLessThanOrEqual(160, mb_strlen($expectedDescription));
+        $this->assertSame($count, Partner::query()->count());
     }
 
     public function test_non_public_partner_returns_not_found(): void

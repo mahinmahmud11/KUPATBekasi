@@ -1,4 +1,13 @@
-<x-layouts.public title="Beranda" description="Temukan produk dan profil UMKM binaan Kota Bekasi melalui katalog digital KUPATBekasi.">
+@php
+    $normalizedAboutSummary = $aboutSummary ? trim((string) preg_replace('/\s+/', ' ', strip_tags($aboutSummary))) : '';
+    $homeDescription = $normalizedAboutSummary !== ''
+        ? Str::limit($normalizedAboutSummary, 160, '')
+        : 'Temukan produk dan profil UMKM binaan Kota Bekasi melalui katalog digital KUPATBekasi.';
+    $homeImagePath = $heroBanners->first()?->image_path;
+    $homeImage = $homeImagePath ? Storage::disk('public')->url($homeImagePath) : null;
+@endphp
+
+<x-layouts.public title="Beranda" :description="$homeDescription" :image="$homeImage">
     @if ($heroBanners->isNotEmpty())
         <section class="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8" data-home-slider>
             <div class="overflow-hidden" data-home-slider-viewport>

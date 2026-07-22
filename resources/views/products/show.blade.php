@@ -1,4 +1,9 @@
-<x-layouts.public :title="$product->name" :description="$product->short_description">
+@php
+    $productMetadataImagePath = $product->main_image_path ?: $product->images->first()?->image_path;
+    $productMetadataImage = $productMetadataImagePath ? Storage::disk('public')->url($productMetadataImagePath) : null;
+@endphp
+
+<x-layouts.public :title="$product->name" :description="$product->short_description ?: $product->description" :image="$productMetadataImage" type="product">
     <div @class([
         'mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8',
         'pb-28 sm:pb-10' => $whatsappUrl,
