@@ -1,21 +1,49 @@
 <x-layouts.public title="Beranda" description="Temukan produk dan profil UMKM binaan Kota Bekasi melalui katalog digital KUPATBekasi.">
-    @if ($heroBanner)
-        <section class="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-2 lg:items-center lg:px-8">
-            @if ($heroBanner->image_path)
-                <img class="aspect-[16/9] w-full rounded-xl object-cover" src="{{ Storage::disk('public')->url($heroBanner->image_path) }}" alt="{{ $heroBanner->title }}">
-            @endif
+    @if ($heroBanners->isNotEmpty())
+        <section class="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8" data-home-slider>
+            <div class="overflow-hidden" data-home-slider-viewport>
+                <div class="relative grid" data-home-slider-track>
+                    @foreach ($heroBanners as $index => $heroBanner)
+                        <article @class([
+                            'col-start-1 row-start-1 grid transform-gpu gap-8 lg:grid-cols-2 lg:items-center',
+                            'invisible pointer-events-none' => $index !== 0,
+                        ]) data-home-slide data-home-slide-transition data-slide-index="{{ $index }}" aria-hidden="{{ $index === 0 ? 'false' : 'true' }}">
+                            @if ($heroBanner->image_path)
+                                <img class="aspect-[16/9] w-full rounded-xl object-cover" src="{{ Storage::disk('public')->url($heroBanner->image_path) }}" alt="{{ $heroBanner->title }}">
+                            @endif
 
-            <div>
-                <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">{{ $heroBanner->title }}</h1>
+                            <div>
+                                <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">{{ $heroBanner->title }}</h1>
 
-                @if ($heroBanner->subtitle)
-                    <p class="mt-4 text-base leading-7 text-gray-600 sm:text-lg">{{ $heroBanner->subtitle }}</p>
-                @endif
+                                @if ($heroBanner->subtitle)
+                                    <p class="mt-4 text-base leading-7 text-gray-600 sm:text-lg">{{ $heroBanner->subtitle }}</p>
+                                @endif
 
-                @if ($heroBanner->button_label && $heroBanner->button_url)
-                    <a class="mt-6 inline-flex rounded-lg bg-gray-900 px-5 py-3 font-semibold text-white hover:bg-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" href="{{ $heroBanner->button_url }}">{{ $heroBanner->button_label }}</a>
-                @endif
+                                @if ($heroBanner->button_label && $heroBanner->button_url)
+                                    <a class="mt-6 inline-flex rounded-lg bg-gray-900 px-5 py-3 font-semibold text-white hover:bg-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" href="{{ $heroBanner->button_url }}">{{ $heroBanner->button_label }}</a>
+                                @endif
+                            </div>
+                        </article>
+                    @endforeach
+                </div>
             </div>
+
+            @if ($heroBanners->count() > 1)
+                <div class="mt-4 flex justify-center">
+                    <div class="flex items-center gap-1" aria-label="Pilih banner">
+                        @foreach ($heroBanners as $index => $heroBanner)
+                            <button class="flex h-8 w-8 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" type="button" data-home-slider-indicator data-slide-index="{{ $index }}" aria-label="Tampilkan banner {{ $index + 1 }}: {{ $heroBanner->title }}" aria-current="{{ $index === 0 ? 'true' : 'false' }}">
+                                <span @class([
+                                    'h-2.5 w-2.5 rounded-full border border-gray-900',
+                                    'bg-gray-900' => $index === 0,
+                                    'bg-white' => $index !== 0,
+                                ]) data-home-slider-dot aria-hidden="true"></span>
+                                <span class="sr-only">Banner {{ $index + 1 }}</span>
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
         </section>
     @else
         <section class="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 [&>h1]:text-3xl [&>h1]:font-bold [&>h1]:tracking-tight sm:[&>h1]:text-4xl">

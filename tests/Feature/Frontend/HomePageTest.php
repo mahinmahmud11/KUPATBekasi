@@ -81,7 +81,7 @@ class HomePageTest extends TestCase
         $this->assertSame(1, SiteSetting::query()->count());
     }
 
-    public function test_home_displays_the_first_ordered_active_banner(): void
+    public function test_home_renders_all_active_banners_in_order_with_slider_controls(): void
     {
         $this->withoutVite();
         Storage::fake('public');
@@ -91,6 +91,7 @@ class HomePageTest extends TestCase
 
         $laterBanner = Banner::factory()->create([
             'title' => 'Banner Aktif Berikutnya',
+            'subtitle' => 'Konten banner kedua.',
             'is_active' => true,
             'sort_order' => 20,
         ]);
@@ -114,13 +115,28 @@ class HomePageTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertSee('data-home-slider', false)
+            ->assertSeeInOrder([$heroBanner->title, $laterBanner->title])
             ->assertSee($heroBanner->title)
             ->assertSee($heroBanner->subtitle)
             ->assertSee('src="'.Storage::disk('public')->url($imagePath).'"', false)
             ->assertSee('alt="'.$heroBanner->title.'"', false)
             ->assertSee($heroBanner->button_label)
             ->assertSee('href="'.$heroBanner->button_url.'"', false)
-            ->assertDontSee($laterBanner->title)
+            ->assertSee($laterBanner->title)
+            ->assertSee('class="overflow-hidden" data-home-slider-viewport', false)
+            ->assertSee('class="relative grid" data-home-slider-track', false)
+            ->assertSee('data-home-slide data-home-slide-transition data-slide-index="0" aria-hidden="false"', false)
+            ->assertSee('invisible pointer-events-none', false)
+            ->assertSee('data-home-slide data-home-slide-transition data-slide-index="1" aria-hidden="true"', false)
+            ->assertSee('data-home-slider-indicator', false)
+            ->assertSee('data-home-slider-dot', false)
+            ->assertSee('aria-current="true"', false)
+            ->assertSee('aria-current="false"', false)
+            ->assertDontSee('data-home-slider-previous', false)
+            ->assertDontSee('data-home-slider-next', false)
+            ->assertDontSee('>Sebelumnya<', false)
+            ->assertDontSee('>Berikutnya<', false)
             ->assertDontSee($inactiveBanner->title);
 
         $this->assertSame($bannerCount, Banner::query()->count());
@@ -139,6 +155,25 @@ class HomePageTest extends TestCase
             ->assertOk()
             ->assertSee('href="/produk"', false)
             ->assertSee('Jelajahi Produk');
+    }
+
+    public function test_single_banner_does_not_render_slider_controls(): void
+    {
+        $this->withoutVite();
+
+        $banner = Banner::factory()->create(['title' => 'Banner Tunggal']);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee($banner->title)
+            ->assertSee('data-home-slider', false)
+            ->assertSee('data-home-slider-viewport', false)
+            ->assertSee('data-home-slider-track', false)
+            ->assertSee('data-home-slide-transition', false)
+            ->assertSee('aria-hidden="false"', false)
+            ->assertDontSee('data-home-slider-previous', false)
+            ->assertDontSee('data-home-slider-next', false)
+            ->assertDontSee('data-home-slider-indicator', false);
     }
 
     public function test_home_displays_the_shell_fallback_when_no_active_banner_exists(): void

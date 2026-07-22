@@ -13,10 +13,10 @@ class HomeController extends Controller
 {
     public function __invoke(): View
     {
-        $heroBanner = Banner::query()
+        $heroBanners = Banner::query()
             ->active()
             ->ordered()
-            ->first();
+            ->get();
 
         $categories = Category::query()->active()->ordered()->limit(6)->get();
 
@@ -54,7 +54,7 @@ class HomeController extends Controller
             'categories',
             'featuredPartners',
             'featuredProducts',
-            'heroBanner',
+            'heroBanners',
             'latestProducts',
         ));
     }
