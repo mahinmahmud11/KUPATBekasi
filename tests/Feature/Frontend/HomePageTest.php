@@ -188,7 +188,7 @@ class HomePageTest extends TestCase
         $this->assertSame($counts, [Category::query()->count(), Partner::query()->count(), Product::query()->count()]);
     }
 
-    public function test_layout_navigation_uses_public_named_routes_and_meta_description_is_optional(): void
+    public function test_layout_navigation_uses_public_named_routes_and_home_meta_description(): void
     {
         $this->withoutVite();
 
@@ -204,6 +204,7 @@ class HomePageTest extends TestCase
             ->assertSee('href="'.route('privacy').'"', false)
             ->assertSee('<meta property="og:title" content="Beranda | '.config('app.name').'">', false)
             ->assertSee('<link rel="canonical" href="'.route('home').'">', false)
-            ->assertDontSee('<meta name="description"', false);
+            ->assertSee('<meta name="description" content="Temukan produk dan profil UMKM binaan Kota Bekasi melalui katalog digital KUPATBekasi.">', false)
+            ->assertSee('<meta property="og:description" content="Temukan produk dan profil UMKM binaan Kota Bekasi melalui katalog digital KUPATBekasi.">', false);
     }
 }

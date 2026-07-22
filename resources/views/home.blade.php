@@ -1,4 +1,4 @@
-<x-layouts.public title="Beranda">
+<x-layouts.public title="Beranda" description="Temukan produk dan profil UMKM binaan Kota Bekasi melalui katalog digital KUPATBekasi.">
     @if ($heroBanner)
         <section class="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:grid-cols-2 lg:items-center lg:px-8">
             @if ($heroBanner->image_path)
