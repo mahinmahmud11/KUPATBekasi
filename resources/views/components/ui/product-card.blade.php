@@ -1,6 +1,6 @@
 @props(['product'])
 
-<article class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+<article class="relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
     @if ($product->main_image_path)
         <img class="aspect-[4/3] w-full object-cover" src="{{ Storage::disk('public')->url($product->main_image_path) }}" alt="{{ $product->name }}" loading="lazy">
     @else
@@ -9,7 +9,7 @@
 
     <div class="space-y-2 p-5">
         <p class="text-sm text-gray-600">{{ $product->partner->name }}</p>
-        <h3 class="text-lg font-semibold"><a class="hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gray-900" href="{{ route('products.show', $product) }}">{{ $product->name }}</a></h3>
+        <h3 class="text-lg font-semibold"><a class="after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gray-900" href="{{ route('products.show', $product) }}">{{ $product->name }}</a></h3>
         @if ($product->category)
             <p class="text-sm text-gray-500">{{ $product->category->name }}</p>
         @endif

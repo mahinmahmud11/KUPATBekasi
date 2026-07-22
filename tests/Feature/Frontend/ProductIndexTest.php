@@ -26,6 +26,8 @@ class ProductIndexTest extends TestCase
 
         $this->assertSame('/produk', route('products.index', absolute: false));
         $this->get(route('products.index'))->assertOk()->assertSee($active->name)
+            ->assertSee('<article class="relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">', false)
+            ->assertSee('after:absolute after:inset-0 after:content-[\'\']', false)
             ->assertDontSee($inactive->name)->assertDontSee($deleted->name)->assertDontSee($hiddenByPartner->name);
     }
 
