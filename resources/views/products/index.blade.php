@@ -56,7 +56,7 @@
                     }
                     $message = 'Tidak ada produk yang sesuai dengan pencarian atau filter yang dipilih' . (!empty($filterText) ? ' (' . implode(', ', $filterText) . ')' : '') . '.';
                 @endphp
-                <div class="mt-8 text-center">
+                <div class="mt-8 break-words text-center">
                     <x-ui.empty-state :message="$message" />
                     <div class="mt-4">
                         <a class="inline-block rounded-lg border border-gray-300 px-5 py-3 text-center font-semibold hover:border-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" href="{{ route('products.index') }}">Hapus filter</a>

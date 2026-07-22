@@ -91,6 +91,24 @@ class ProductIndexTest extends TestCase
 
         $response->assertOk()
             ->assertSee('Tidak ada produk yang sesuai dengan pencarian atau filter yang dipilih (kata kunci &quot;TidakAdaProdukIni&quot;).', false)
+            ->assertSee('break-words')
+            ->assertSee('Hapus filter')
+            ->assertSee('href="'.route('products.index').'"', false)
+            ->assertDontSee('Reset filter')
+            ->assertDontSee('Produk yang dicari belum tersedia.');
+    }
+
+    public function test_catalog_empty_state_with_long_unbreakable_query_prevents_overflow(): void
+    {
+        $this->withoutVite();
+
+        $longQuery = str_repeat('a', 150);
+
+        $response = $this->get(route('products.index', ['q' => $longQuery]));
+
+        $response->assertOk()
+            ->assertSee('Tidak ada produk yang sesuai dengan pencarian atau filter yang dipilih (kata kunci &quot;'.$longQuery.'&quot;).', false)
+            ->assertSee('break-words')
             ->assertSee('Hapus filter')
             ->assertSee('href="'.route('products.index').'"', false)
             ->assertDontSee('Reset filter')
