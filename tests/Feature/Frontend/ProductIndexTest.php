@@ -62,4 +62,29 @@ class ProductIndexTest extends TestCase
         $this->withoutVite();
         $this->get(route('products.index'))->assertOk()->assertSee('Produk yang dicari belum tersedia.');
     }
+
+    public function test_catalog_search_form_displays_correct_state_and_options(): void
+    {
+        $this->withoutVite();
+        $category1 = Category::factory()->create(['name' => 'Kategori Satu', 'slug' => 'satu']);
+        $category2 = Category::factory()->create(['name' => 'Kategori Dua', 'slug' => 'dua']);
+
+        $this->get(route('products.index'))
+            ->assertOk()
+            ->assertSee('action="'.route('products.index').'"', false)
+            ->assertSee('method="GET"', false)
+            ->assertSee('name="q"', false)
+            ->assertSee('placeholder="Cari produk atau nama UMKM"', false)
+            ->assertSee('name="category"', false)
+            ->assertSee('<option value="satu" >Kategori Satu</option>', false)
+            ->assertSee('<option value="dua" >Kategori Dua</option>', false)
+            ->assertDontSee('Reset filter');
+
+        $this->get(route('products.index', ['q' => 'Keripik', 'category' => 'dua']))
+            ->assertOk()
+            ->assertSee('value="Keripik"', false)
+            ->assertSee('<option value="dua" selected>Kategori Dua</option>', false)
+            ->assertSee('Reset filter')
+            ->assertSee('href="'.route('products.index').'"', false);
+    }
 }
