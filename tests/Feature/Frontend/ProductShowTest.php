@@ -162,16 +162,37 @@ class ProductShowTest extends TestCase
         $partner = Partner::factory()->create(['whatsapp' => '0812-3456-7890']);
         $product = Product::factory()->for($partner)->create(['name' => 'Produk & Spesial']);
 
-        $this->get(route('products.show', $product))->assertOk()
+        $count = Product::query()->count();
+        $response = $this->get(route('products.show', $product));
+
+        $response->assertOk()
             ->assertSee('https://wa.me/6281234567890?text=', false)
-            ->assertSee('Produk%20%26%20Spesial', false);
+            ->assertSee('Produk%20%26%20Spesial', false)
+            ->assertSee('data-mobile-whatsapp-cta', false)
+            ->assertSee('class="fixed inset-x-4 bottom-4 z-40 sm:hidden"', false)
+            ->assertSee('Tanya Produk via WhatsApp');
+
+        $whatsappUrl = 'https://wa.me/6281234567890?text=Halo%2C%20saya%20melihat%20produk%20Produk%20%26%20Spesial%20di%20KUPATBekasi.%20Apakah%20produk%20ini%20masih%20tersedia%3F';
+
+        $this->assertSame(2, substr_count($response->getContent(), 'href="'.$whatsappUrl.'"'));
+        $this->assertSame($count, Product::query()->count());
     }
 
-    public function test_whatsapp_button_is_hidden_for_invalid_number(): void
+    public function test_whatsapp_buttons_are_hidden_for_invalid_or_empty_number(): void
     {
         $this->withoutVite();
-        $product = Product::factory()->for(Partner::factory()->state(['whatsapp' => 'tidak-valid']))->create();
 
-        $this->get(route('products.show', $product))->assertOk()->assertDontSee('Hubungi via WhatsApp');
+        foreach (['tidak-valid', ''] as $whatsapp) {
+            $product = Product::factory()->for(Partner::factory()->state(['whatsapp' => $whatsapp]))->create();
+            $count = Product::query()->count();
+
+            $this->get(route('products.show', $product))
+                ->assertOk()
+                ->assertDontSee('Hubungi via WhatsApp')
+                ->assertDontSee('Tanya Produk via WhatsApp')
+                ->assertDontSee('data-mobile-whatsapp-cta', false);
+
+            $this->assertSame($count, Product::query()->count());
+        }
     }
 }

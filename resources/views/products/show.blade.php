@@ -1,5 +1,8 @@
 <x-layouts.public :title="$product->name" :description="$product->short_description">
-    <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+    <div @class([
+        'mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8',
+        'pb-28 sm:pb-10' => $whatsappUrl,
+    ])>
         <nav class="mb-6 min-w-0" aria-label="Breadcrumb">
             <ol class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600">
                 <li><a class="rounded hover:text-gray-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" href="{{ route('home') }}">Beranda</a></li>
@@ -132,4 +135,10 @@
             @endif
         </section>
     </div>
+
+    @if ($whatsappUrl)
+        <div class="fixed inset-x-4 bottom-4 z-40 sm:hidden" data-mobile-whatsapp-cta>
+            <a class="flex w-full justify-center rounded-xl bg-gray-900 px-5 py-3 font-semibold text-white shadow-lg ring-1 ring-white/20 hover:bg-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" href="{{ $whatsappUrl }}" rel="noopener noreferrer" target="_blank">Tanya Produk via WhatsApp</a>
+        </div>
+    @endif
 </x-layouts.public>
