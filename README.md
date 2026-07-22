@@ -1,66 +1,290 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# KUPATBekasi
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Deskripsi
+KUPATBekasi (Katalog UMKM Patriot Binaan Kota Bekasi) adalah aplikasi katalog digital berbasis web yang ditujukan untuk menampilkan dan mempromosikan produk serta profil para pelaku Usaha Mikro, Kecil, dan Menengah (UMKM) di wilayah Kota Bekasi. Aplikasi ini mempermudah masyarakat menemukan berbagai produk unggulan daerah.
 
-## About Laravel
+Fitur utama aplikasi ini meliputi:
+- Katalog produk UMKM yang dilengkapi dengan filter berdasarkan kategori dan mitra.
+- Halaman profil mitra lokal beserta rincian kontak dan daftar produk.
+- Halaman informasi dan kontak dengan kustomisasi melalui panel administrator.
+- Integrasi tombol WhatsApp pada produk untuk memulai komunikasi dengan penjual.
+- Panel administrator untuk pengelolaan data spanduk, mitra, dan produk.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Teknologi
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| Nama Teknologi | Peran | Versi |
+|----------------|-------|-------|
+| Laravel | Web Framework | 12.0 |
+| Filament | Admin Panel | 5.0 |
+| PHP | Server-Side Language | ^8.2 |
+| Vite | Frontend Build Tool | ^6.0.11 |
+| Tailwind CSS | Utility-First CSS Framework | ^4.0.0 |
+| MySQL/MariaDB | Database Utama (Produksi) | Didukung |
+| SQLite | Database Bawaan (Localhost) | Didukung |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Persyaratan Sistem
 
-## Learning Laravel
+Untuk menjalankan proyek ini, dibutuhkan minimum lingkungan berikut:
+- PHP >= 8.2 (dengan ekstensi standar Laravel; untuk database aktifkan `pdo_sqlite` jika menggunakan SQLite, atau `pdo_mysql` jika menggunakan MySQL/MariaDB)
+- Composer 2.x
+- Node.js (disarankan versi LTS terbaru) dan npm
+- Git
+- Database pendukung (SQLite, MySQL, atau MariaDB)
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Instalasi Localhost
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+Ikuti langkah-langkah di bawah untuk mengatur lingkungan *development* pada komputer Anda:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+1. **Clone repository**
+   Unduh repository ke mesin lokal Anda:
+   ```bash
+   git clone https://github.com/mahinmahmud11/KUPATBekasi.git
+   cd KUPATBekasi
+   ```
 
-## Laravel Sponsors
+2. **Install dependency PHP**
+   Unduh paket pustaka backend:
+   ```bash
+   composer install
+   ```
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+3. **Install dependency Node.js**
+   Unduh modul frontend:
+   ```bash
+   npm install
+   ```
 
-### Premium Partners
+4. **Konfigurasi Environment**
+   Salin file konfigurasi.
+   - Windows PowerShell:
+     ```powershell
+     Copy-Item .env.example .env
+     ```
+   - Linux/macOS:
+     ```bash
+     cp .env.example .env
+     ```
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+5. **Konfigurasi Database**
+   Secara konfigurasi awal, `.env.example` menggunakan SQLite, yang cocok untuk pengembangan lokal. Ini bukan satu-satunya pilihan. Anda juga dapat menggunakan MySQL/MariaDB dengan menyesuaikan parameter `DB_*` di file `.env`.
 
-## Contributing
+   Jika Anda mempertahankan SQLite, buat file databasenya.
+   - Windows PowerShell:
+     ```powershell
+     New-Item database/database.sqlite -ItemType File -Force
+     ```
+   - Linux/macOS:
+     ```bash
+     touch database/database.sqlite
+     ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+   Contoh konfigurasi `.env` untuk SQLite yang relevan:
+   ```ini
+   DB_CONNECTION=sqlite
+   # DB_HOST=127.0.0.1
+   # DB_PORT=3306
+   # DB_DATABASE=laravel
+   # DB_USERNAME=root
+   # DB_PASSWORD=
+   ```
 
-## Code of Conduct
+6. **Generate App Key**
+   Buat kunci enkripsi aplikasi:
+   ```bash
+   php artisan key:generate
+   ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+7. **Migrasi dan Seed Data**
+   Jalankan migrasi skema tabel dan isi data awal (dummy):
+   ```bash
+   php artisan migrate --seed
+   ```
 
-## Security Vulnerabilities
+8. **Buat Akun Administrator**
+   Aplikasi ini tidak menyertakan akun admin bawaan pada seeder. Anda perlu membuatnya manual untuk mengakses Filament:
+   ```bash
+   php artisan make:filament-user
+   ```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+9. **Storage Link**
+   Buat tautan agar file *storage* dapat diakses publik:
+   ```bash
+   php artisan storage:link
+   ```
+
+10. **Jalankan Aplikasi**
+    Buka terminal dan eksekusi skrip:
+    ```bash
+    composer run dev
+    ```
+
+    Setelah skrip berjalan, aplikasi umumnya dapat diakses melalui:
+    ```text
+    http://127.0.0.1:8000
+    ```
+    Alamat aktual mengikuti keluaran terminal apabila *port* default sedang digunakan aplikasi lain.
+
+## Menjalankan Development
+
+Skrip `composer run dev` mengeksekusi beberapa perintah secara paralel menggunakan *concurrently*. Fungsi dari masing-masing proses adalah:
+
+- **Laravel Development Server (`php artisan serve`)**: Menyediakan web server lokal.
+- **Queue Worker (`php artisan queue:listen`)**: Mendengarkan antrean tugas secara aktif, siap memproses setiap entri *job* yang tertunda.
+- **Pail (`php artisan pail`)**: Menampilkan *log* aplikasi interaktif pada terminal.
+- **Vite (`npm run dev`)**: Menjalankan server *bundler* frontend untuk kompilasi *Hot Module Replacement* (HMR).
+
+## Deployment VPS
+
+Penting: Sebelum melakukan instalasi, pastikan pengaturan *Document Root* pada *web server* (Apache/Nginx) menunjuk ke direktori `public`, contohnya `/path/to/KUPATBekasi/public`.
+
+### Instalasi Pertama
+
+1. Clone repository ke direktori proyek (`<direktori-proyek>`):
+   ```bash
+   git clone https://github.com/mahinmahmud11/KUPATBekasi.git <direktori-proyek>
+   cd <direktori-proyek>
+   ```
+2. Install dependency PHP untuk produksi:
+   ```bash
+   composer install --no-dev --optimize-autoloader
+   ```
+3. Install modul Node:
+   ```bash
+   npm ci
+   ```
+4. Salin file konfigurasi environment:
+   ```bash
+   cp .env.example .env
+   ```
+
+   Kemudian atur parameter production menggunakan nilai yang sesuai:
+   ```ini
+   APP_ENV=production
+   APP_DEBUG=false
+   APP_URL=https://domain-anda.example
+
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=nama_database
+   DB_USERNAME=nama_pengguna_database
+   DB_PASSWORD=ganti_dengan_password_yang_kuat
+   ```
+   **Peringatan:** Nilai di atas hanya contoh. Jangan menyalin password contoh sebagai password nyata, dan jangan pernah memasukkan file `.env` *production* ke dalam Git.
+
+5. Persiapkan aplikasi sesuai urutan berikut:
+   ```bash
+   php artisan key:generate
+   php artisan migrate --force
+   php artisan storage:link
+   npm run build
+   php artisan optimize:clear
+   php artisan optimize
+   ```
+6. Terakhir, sesuaikan hak akses (*permission*) direktori sistem:
+   ```bash
+   sudo chown -R www-data:www-data storage bootstrap/cache
+   sudo chmod -R 775 storage bootstrap/cache
+   ```
+
+### Update Deployment
+
+Untuk memperbarui aplikasi produksi, jalankan langkah berikut dari direktori proyek:
+
+```bash
+git pull --ff-only origin main
+
+composer install --no-dev --optimize-autoloader
+
+npm ci
+
+npm run build
+
+php artisan optimize:clear
+
+php artisan migrate --force
+
+php artisan optimize
+
+php artisan queue:restart
+```
+
+Catatan Update:
+- Lakukan *backup* database sebelum menjalankan migrasi.
+- Jangan menjalankan perintah `key:generate` saat melakukan *update*.
+- Pastikan semua perintah dijalankan dari dalam direktori proyek.
+- Apabila `git pull` gagal akibat adanya perubahan file lokal, hentikan proses deployment dan lakukan audit pada perubahan tersebut. Jangan memaksakan reset tanpa verifikasi.
+
+## Queue Worker
+
+Aplikasi menggunakan sistem antrean berbasis database, berdasarkan konfigurasi bawaan `QUEUE_CONNECTION=database`. Pastikan Anda memiliki *queue worker* yang selalu berjalan di VPS.
+
+Contoh konfigurasi **Supervisor** (`/etc/supervisor/conf.d/kupatbekasi-worker.conf`):
+
+```ini
+[program:kupatbekasi-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/kupatbekasi/artisan queue:work --sleep=3 --tries=3 --max-time=3600
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+user=www-data
+numprocs=1
+redirect_stderr=true
+stdout_logfile=/var/www/kupatbekasi/storage/logs/worker.log
+stopwaitsecs=3600
+```
+
+Terapkan konfigurasi:
+```bash
+sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl start kupatbekasi-worker:*
+sudo supervisorctl status
+```
+
+Status proses harus menunjukkan `RUNNING`. Pastikan Anda menyesuaikan `/var/www/kupatbekasi` dengan direktori proyek aktual, dan sesuaikan user `www-data` apabila PHP-FPM atau web server menggunakan user yang berbeda.
+
+## Storage
+
+File *upload* publik (seperti gambar produk atau profil mitra) disimpan pada `storage/app/public`.
+
+Perintah `php artisan storage:link` berfungsi membuat *symbolic link* agar aset tersebut dapat diakses melalui internet, yang menghubungkan:
+`public/storage` -> `storage/app/public`
+
+Perintah `storage:link` cukup dijalankan saat instalasi pertama atau ketika *symbolic link* belum ada atau rusak.
+Folder `storage` dan `bootstrap/cache` harus dapat ditulis oleh user web server agar aplikasi dapat menyimpan log, *cache*, maupun file *upload*. Jangan menggunakan *permission* `777`.
+
+Sertakan perintah VPS:
+```bash
+sudo chown -R www-data:www-data storage bootstrap/cache
+sudo chmod -R 775 storage bootstrap/cache
+```
+
+## Scheduler
+
+Saat ini, file `routes/console.php` belum mendefinisikan jadwal aplikasi khusus (Task Scheduling). Konfigurasi *cron* baru akan diperlukan apabila ada *scheduler* yang ditambahkan di kemudian hari.
+
+## Troubleshooting
+
+- **`APP_KEY` missing (Error 500)**: Aplikasi membutuhkan kunci enkripsi. Jalankan `php artisan key:generate`.
+- **Izin akses ditolak (Permission denied)**: Pastikan konfigurasi *chown* dan *chmod* pada folder `storage` dan `bootstrap/cache` sudah benar.
+- **Storage image tidak muncul**: *Symlink* kemungkinan rusak atau belum ada. Perbaiki dengan menjalankan `php artisan storage:link`.
+- **Aset antarmuka tidak dimuat (Vite manifest not found)**: Pastikan telah menjalankan *build* aset. Anda dapat memeriksa keberadaan file di `public/build/manifest.json`.
+- **Cache konfigurasi tidak sinkron**: Jika konfigurasi gagal dimuat, bersihkan menggunakan `php artisan optimize:clear`.
+- **Job antrean tidak tereksekusi**:
+  - Pastikan *worker* aktif menggunakan `supervisorctl status`.
+  - Periksa tugas yang gagal eksekusi dengan `php artisan queue:failed`.
+
+## Security Notes
+
+- **Jangan *commit* `.env`**: Repositori Git tidak boleh menyimpan rahasia konfigurasi peladen Anda.
+- **Environment Produksi**: Pastikan nilai `APP_DEBUG=false` untuk mencegah kebocoran *stack trace* dan konfigurasi ke pengguna akhir.
+- **Gunakan HTTPS**: Selalu pastikan web server memfasilitasi HTTPS yang valid agar lalu lintas data dan kredensial terlindungi.
+- **Backup Database**: Cadangkan database secara reguler, terutama sebelum mengeksekusi `migrate` pada lingkungan produksi.
+- **Hindari `key:generate` pada Update Deployment**: Menjalankan ulang perintah pembuatan kunci akan mengubah `APP_KEY`, yang dapat membuat session, cookie terenkripsi, dan data terenkripsi lama tidak dapat dibaca.
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Hak penggunaan dan distribusi proyek mengikuti kebijakan pemilik repository. Hubungi pemilik proyek untuk informasi lisensi.
