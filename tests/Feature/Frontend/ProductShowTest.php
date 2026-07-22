@@ -20,7 +20,13 @@ class ProductShowTest extends TestCase
         Storage::fake('public');
         $partner = Partner::factory()->create(['name' => 'Mitra Produk']);
         $category = Category::factory()->create(['name' => 'Kategori Produk']);
-        $product = Product::factory()->for($partner)->for($category)->create(['name' => 'Produk Detail', 'main_image_path' => 'products/main.webp']);
+        $product = Product::factory()->for($partner)->for($category)->create([
+            'name' => 'Produk Detail',
+            'description' => 'Deskripsi lengkap produk detail.',
+            'price' => 125000,
+            'unit' => 'paket',
+            'main_image_path' => 'products/main.webp',
+        ]);
         Storage::disk('public')->put('products/main.webp', 'main');
         Storage::disk('public')->put('products/first.webp', 'first');
         Storage::disk('public')->put('products/second.webp', 'second');
@@ -30,7 +36,20 @@ class ProductShowTest extends TestCase
 
         $response = $this->get(route('products.show', $product));
 
-        $response->assertOk()->assertSee($product->name)->assertSee($partner->name)->assertSee($category->name)
+        $response->assertOk()
+            ->assertSee('<nav class="mb-6 min-w-0" aria-label="Breadcrumb">', false)
+            ->assertSee('href="'.route('home').'"', false)
+            ->assertSee('href="'.route('products.index').'"', false)
+            ->assertSee('<h1 class="mt-4 break-words text-3xl font-bold tracking-tight sm:text-4xl">'.$product->name.'</h1>', false)
+            ->assertSee('data-product-category-badge', false)
+            ->assertSee('href="'.route('categories.show', $category).'"', false)
+            ->assertSee('data-product-stock-badge', false)
+            ->assertSee('Tersedia')
+            ->assertSee('Rp 125.000')
+            ->assertSee('/ paket')
+            ->assertSee($product->description)
+            ->assertSee($partner->name)
+            ->assertSee($category->name)
             ->assertSee(Storage::disk('public')->url('products/main.webp'))
             ->assertSeeInOrder(['Produk Detail', 'Galeri Pertama', 'Galeri Kedua'])
             ->assertSee('data-product-gallery', false)
@@ -52,6 +71,35 @@ class ProductShowTest extends TestCase
             ->assertSee('aria-current="true"', false)
             ->assertSee('aria-current="false"', false)
             ->assertDontSee('Duplikat Gambar Utama');
+    }
+
+    public function test_stock_status_labels_are_mapped_and_short_description_is_used_as_fallback(): void
+    {
+        $this->withoutVite();
+
+        $statuses = [
+            'available' => 'Tersedia',
+            'preorder' => 'Pre-order',
+            'unavailable' => 'Tidak tersedia',
+        ];
+
+        foreach ($statuses as $status => $label) {
+            $product = Product::factory()->create([
+                'name' => 'Produk '.$label,
+                'description' => null,
+                'short_description' => 'Ringkasan produk '.$label.'.',
+                'stock_status' => $status,
+            ]);
+            $count = Product::query()->count();
+
+            $this->get(route('products.show', $product))
+                ->assertOk()
+                ->assertSee('data-product-stock-badge', false)
+                ->assertSee($label)
+                ->assertSee($product->short_description);
+
+            $this->assertSame($count, Product::query()->count());
+        }
     }
 
     public function test_gallery_uses_first_ordered_image_when_main_image_is_missing_and_removes_duplicates(): void

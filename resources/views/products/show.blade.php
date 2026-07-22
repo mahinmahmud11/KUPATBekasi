@@ -1,5 +1,15 @@
 <x-layouts.public :title="$product->name" :description="$product->short_description">
     <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+        <nav class="mb-6 min-w-0" aria-label="Breadcrumb">
+            <ol class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600">
+                <li><a class="rounded hover:text-gray-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" href="{{ route('home') }}">Beranda</a></li>
+                <li aria-hidden="true">/</li>
+                <li><a class="rounded hover:text-gray-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" href="{{ route('products.index') }}">Produk</a></li>
+                <li aria-hidden="true">/</li>
+                <li class="min-w-0 break-words font-medium text-gray-900" aria-current="page">{{ $product->name }}</li>
+            </ol>
+        </nav>
+
         <div class="grid gap-8 lg:grid-cols-2">
             <div>
                 @php
@@ -65,21 +75,42 @@
                 @endif
             </div>
 
-            <div>
-                <p class="text-sm font-medium text-gray-600"><a class="hover:underline" href="{{ route('categories.show', $product->category) }}">{{ $product->category->name }}</a></p>
-                <h1 class="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">{{ $product->name }}</h1>
-                <p class="mt-4 text-2xl font-bold">Rp {{ number_format($product->price, 0, ',', '.') }}@if ($product->unit)<span class="text-base font-normal text-gray-500"> / {{ $product->unit }}</span>@endif</p>
-                <p class="mt-3 text-gray-600">Status: {{ match ($product->stock_status) { 'available' => 'Tersedia', 'preorder' => 'Pre-order', 'unavailable' => 'Tidak tersedia', default => $product->stock_status } }}</p>
-                @if ($product->description)
-                    <p class="mt-6 whitespace-pre-line leading-7 text-gray-700">{{ $product->description }}</p>
-                @elseif ($product->short_description)
-                    <p class="mt-6 leading-7 text-gray-700">{{ $product->short_description }}</p>
+            <div class="min-w-0">
+                @php
+                    $stockStatusLabel = match ($product->stock_status) {
+                        'available' => 'Tersedia',
+                        'preorder' => 'Pre-order',
+                        'unavailable' => 'Tidak tersedia',
+                        default => $product->stock_status,
+                    };
+
+                    $stockStatusClasses = match ($product->stock_status) {
+                        'available' => 'bg-emerald-100 text-emerald-900 ring-emerald-700/20',
+                        'preorder' => 'bg-amber-100 text-amber-900 ring-amber-700/20',
+                        'unavailable' => 'bg-red-100 text-red-900 ring-red-700/20',
+                        default => 'bg-gray-100 text-gray-900 ring-gray-700/20',
+                    };
+                @endphp
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <a class="inline-flex max-w-full break-words rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-800 ring-1 ring-inset ring-gray-300 hover:bg-gray-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" href="{{ route('categories.show', $product->category) }}" data-product-category-badge>{{ $product->category->name }}</a>
+                    <span class="inline-flex max-w-full break-words rounded-full px-3 py-1 text-sm font-semibold ring-1 ring-inset {{ $stockStatusClasses }}" data-product-stock-badge><span class="sr-only">Status stok: </span>{{ $stockStatusLabel }}</span>
+                </div>
+
+                <h1 class="mt-4 break-words text-3xl font-bold tracking-tight sm:text-4xl">{{ $product->name }}</h1>
+                <p class="mt-5 break-words text-3xl font-bold tracking-tight text-gray-950 sm:text-4xl">Rp {{ number_format($product->price, 0, ',', '.') }}@if ($product->unit)<span class="ml-1 text-base font-medium text-gray-500 sm:text-lg">/ {{ $product->unit }}</span>@endif</p>
+
+                @if ($product->description || $product->short_description)
+                    <section class="mt-7" aria-labelledby="product-description-heading">
+                        <h2 class="text-lg font-semibold" id="product-description-heading">Deskripsi Produk</h2>
+                        <p class="mt-2 break-words whitespace-pre-line leading-7 text-gray-700">{{ $product->description ?: $product->short_description }}</p>
+                    </section>
                 @endif
 
                 <div class="mt-8 rounded-xl border border-gray-200 bg-white p-5">
                     <p class="text-sm text-gray-500">Mitra</p>
-                    <h2 class="mt-1 text-xl font-semibold"><a class="hover:underline" href="{{ route('partners.show', $product->partner) }}">{{ $product->partner->name }}</a></h2>
-                    @if ($product->partner->short_description)<p class="mt-2 text-gray-600">{{ $product->partner->short_description }}</p>@endif
+                    <h2 class="mt-1 break-words text-xl font-semibold"><a class="rounded hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" href="{{ route('partners.show', $product->partner) }}">{{ $product->partner->name }}</a></h2>
+                    @if ($product->partner->short_description)<p class="mt-2 break-words text-gray-600">{{ $product->partner->short_description }}</p>@endif
                 </div>
 
                 @if ($whatsappUrl)
