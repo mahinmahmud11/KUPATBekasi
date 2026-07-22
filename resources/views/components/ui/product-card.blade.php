@@ -9,7 +9,7 @@
 
     <div class="space-y-2 p-5">
         <p class="text-sm text-gray-600">{{ $product->partner->name }}</p>
-        <h3 class="text-lg font-semibold"><a class="after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gray-900" href="{{ route('products.show', $product) }}">{{ $product->name }}</a></h3>
+        <h3 class="line-clamp-2 break-words text-lg font-semibold"><a class="after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gray-900" href="{{ route('products.show', $product) }}">{{ $product->name }}</a></h3>
         @if ($product->category)
             <p class="text-sm text-gray-500">{{ $product->category->name }}</p>
         @endif

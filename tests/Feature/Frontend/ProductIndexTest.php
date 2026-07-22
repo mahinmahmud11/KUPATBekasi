@@ -28,6 +28,8 @@ class ProductIndexTest extends TestCase
         $this->get(route('products.index'))->assertOk()->assertSee($active->name)
             ->assertSee('<article class="relative overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">', false)
             ->assertSee('after:absolute after:inset-0 after:content-[\'\']', false)
+            ->assertSee('line-clamp-2', false)
+            ->assertSee('break-words', false)
             ->assertDontSee($inactive->name)->assertDontSee($deleted->name)->assertDontSee($hiddenByPartner->name);
     }
 
