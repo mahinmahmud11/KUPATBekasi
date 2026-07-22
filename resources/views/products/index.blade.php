@@ -25,12 +25,12 @@
                     @endforeach
                 </select>
             </div>
-            <button class="rounded-lg bg-gray-900 px-5 py-3 font-semibold text-white hover:bg-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" type="submit">Cari</button>
+            <button class="w-full rounded-lg bg-gray-900 px-5 py-3 font-semibold text-white hover:bg-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" type="submit">Cari</button>
             @php
                 $hasFilter = $search !== '' || $categorySlug !== '' || $partnerSlug !== '';
             @endphp
             @if ($hasFilter && $products->isNotEmpty())
-                <a class="rounded-lg border border-gray-300 px-5 py-3 text-center font-semibold hover:border-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" href="{{ route('products.index') }}">Reset filter</a>
+                <a class="w-full rounded-lg border border-gray-300 px-5 py-3 text-center font-semibold hover:border-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" href="{{ route('products.index') }}">Reset filter</a>
             @endif
         </form>
 

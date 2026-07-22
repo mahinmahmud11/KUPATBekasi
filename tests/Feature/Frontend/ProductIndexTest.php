@@ -197,6 +197,7 @@ class ProductIndexTest extends TestCase
             ->assertSee('name="partner"', false)
             ->assertSee('<option value="mitra-aktif" >Mitra Aktif</option>', false)
             ->assertSee('<option value="mitra-dua" >Mitra Dua</option>', false)
+            ->assertSee('<button class="w-full rounded-lg bg-gray-900 px-5 py-3 font-semibold text-white hover:bg-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" type="submit">Cari</button>', false)
             ->assertDontSee('Mitra Nonaktif')
             ->assertDontSee('Reset filter');
 
@@ -205,8 +206,8 @@ class ProductIndexTest extends TestCase
             ->assertSee('value="Keripik"', false)
             ->assertSee('<option value="dua" selected>Kategori Dua</option>', false)
             ->assertSee('<option value="mitra-dua" selected>Mitra Dua</option>', false)
-            ->assertSee('Reset filter')
-            ->assertSee('href="'.route('products.index').'"', false);
+            ->assertSee('<button class="w-full rounded-lg bg-gray-900 px-5 py-3 font-semibold text-white hover:bg-gray-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" type="submit">Cari</button>', false)
+            ->assertSee('<a class="w-full rounded-lg border border-gray-300 px-5 py-3 text-center font-semibold hover:border-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900" href="'.route('products.index').'">Reset filter</a>', false);
 
         $this->get(route('products.index', ['partner' => 'mitra-aktif']))
             ->assertOk()
