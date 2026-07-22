@@ -2,7 +2,7 @@
     <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <h1 class="text-3xl font-bold tracking-tight">Katalog Produk</h1>
 
-        <form action="{{ route('products.index') }}" method="GET" class="mt-6 grid gap-4 rounded-xl bg-white p-5 shadow-sm md:grid-cols-[1fr_12rem_12rem_auto_auto] md:items-end">
+        <form action="{{ route('products.index') }}" method="GET" class="mt-6 grid gap-4 rounded-xl bg-white p-5 shadow-sm lg:grid-cols-[1fr_12rem_12rem_auto_auto] lg:items-end">
             <div>
                 <label class="block text-sm font-medium" for="q">Cari produk atau mitra</label>
                 <input class="mt-2 w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-gray-900 focus:outline-none" id="q" name="q" type="search" value="{{ $search }}" placeholder="Cari produk atau nama UMKM">
