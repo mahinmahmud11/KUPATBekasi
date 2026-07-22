@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Partner;
 use App\Models\Product;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,6 +15,7 @@ class ProductController extends Controller
     {
         $search = trim((string) $request->query('q'));
         $categorySlug = trim((string) $request->query('category'));
+        $partnerSlug = trim((string) $request->query('partner'));
 
         $products = Product::query()
             ->active()
@@ -32,6 +34,10 @@ class ProductController extends Controller
                 'category',
                 fn (Builder $categoryQuery) => $categoryQuery->where('slug', $categorySlug),
             ))
+            ->when($partnerSlug !== '', fn (Builder $query) => $query->whereHas(
+                'partner',
+                fn (Builder $partnerQuery) => $partnerQuery->where('slug', $partnerSlug),
+            ))
             ->orderByDesc('is_featured')
             ->orderBy('sort_order')
             ->latest()
@@ -39,8 +45,9 @@ class ProductController extends Controller
             ->withQueryString();
 
         $categories = Category::query()->active()->ordered()->get();
+        $partners = Partner::query()->active()->ordered()->get();
 
-        return view('products.index', compact('categories', 'categorySlug', 'products', 'search'));
+        return view('products.index', compact('categories', 'categorySlug', 'partners', 'partnerSlug', 'products', 'search'));
     }
 
     public function show(Product $product): View

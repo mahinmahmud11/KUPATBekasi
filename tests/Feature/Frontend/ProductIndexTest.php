@@ -63,11 +63,57 @@ class ProductIndexTest extends TestCase
         $this->get(route('products.index'))->assertOk()->assertSee('Produk yang dicari belum tersedia.');
     }
 
+    public function test_catalog_filters_partner_and_preserves_query_on_pagination(): void
+    {
+        $this->withoutVite();
+        $wantedPartner = Partner::factory()->create(['slug' => 'mitra-satu']);
+        $otherPartner = Partner::factory()->create(['slug' => 'mitra-dua']);
+        $category = Category::factory()->create();
+        Product::factory()->count(13)->for($wantedPartner)->for($category)->create();
+        $otherProduct = Product::factory()->for($otherPartner)->for($category)->create(['name' => 'Produk Mitra Lain']);
+
+        $response = $this->get(route('products.index', ['partner' => 'mitra-satu']));
+
+        $response->assertOk()
+            ->assertDontSee($otherProduct->name)
+            ->assertSee('partner=mitra-satu', false)
+            ->assertSee('partner=mitra-satu&amp;page=2', false);
+    }
+
+    public function test_catalog_filters_all_combined(): void
+    {
+        $this->withoutVite();
+        $targetCategory = Category::factory()->create(['name' => 'Makanan', 'slug' => 'makanan']);
+        $otherCategory = Category::factory()->create(['name' => 'Kerajinan', 'slug' => 'kerajinan']);
+        $targetPartner = Partner::factory()->create(['name' => 'Mitra Satu', 'slug' => 'mitra-satu']);
+        $otherPartner = Partner::factory()->create(['name' => 'Mitra Dua', 'slug' => 'mitra-dua']);
+
+        $targetProduct = Product::factory()->for($targetPartner)->for($targetCategory)->create(['name' => 'Keripik Pisang']);
+        $diffCategoryProduct = Product::factory()->for($targetPartner)->for($otherCategory)->create(['name' => 'Keripik Singkong']);
+        $diffPartnerProduct = Product::factory()->for($otherPartner)->for($targetCategory)->create(['name' => 'Keripik Kentang']);
+        $diffKeywordProduct = Product::factory()->for($targetPartner)->for($targetCategory)->create(['name' => 'Kue Bolu']);
+
+        $response = $this->get(route('products.index', ['q' => 'Keripik', 'category' => 'makanan', 'partner' => 'mitra-satu']));
+
+        $response->assertOk()
+            ->assertSee($targetProduct->name)
+            ->assertDontSee($diffCategoryProduct->name)
+            ->assertDontSee($diffPartnerProduct->name)
+            ->assertDontSee($diffKeywordProduct->name)
+            ->assertSee('value="Keripik"', false)
+            ->assertSee('<option value="makanan" selected>', false)
+            ->assertSee('<option value="mitra-satu" selected>', false);
+    }
+
     public function test_catalog_search_form_displays_correct_state_and_options(): void
     {
         $this->withoutVite();
         $category1 = Category::factory()->create(['name' => 'Kategori Satu', 'slug' => 'satu']);
         $category2 = Category::factory()->create(['name' => 'Kategori Dua', 'slug' => 'dua']);
+
+        $partner1 = Partner::factory()->create(['name' => 'Mitra Aktif', 'slug' => 'mitra-aktif']);
+        $partner2 = Partner::factory()->create(['name' => 'Mitra Dua', 'slug' => 'mitra-dua']);
+        $inactivePartner = Partner::factory()->create(['name' => 'Mitra Nonaktif', 'slug' => 'mitra-nonaktif', 'is_active' => false]);
 
         $this->get(route('products.index'))
             ->assertOk()
@@ -78,13 +124,23 @@ class ProductIndexTest extends TestCase
             ->assertSee('name="category"', false)
             ->assertSee('<option value="satu" >Kategori Satu</option>', false)
             ->assertSee('<option value="dua" >Kategori Dua</option>', false)
+            ->assertSee('name="partner"', false)
+            ->assertSee('<option value="mitra-aktif" >Mitra Aktif</option>', false)
+            ->assertSee('<option value="mitra-dua" >Mitra Dua</option>', false)
+            ->assertDontSee('Mitra Nonaktif')
             ->assertDontSee('Reset filter');
 
-        $this->get(route('products.index', ['q' => 'Keripik', 'category' => 'dua']))
+        $this->get(route('products.index', ['q' => 'Keripik', 'category' => 'dua', 'partner' => 'mitra-dua']))
             ->assertOk()
             ->assertSee('value="Keripik"', false)
             ->assertSee('<option value="dua" selected>Kategori Dua</option>', false)
+            ->assertSee('<option value="mitra-dua" selected>Mitra Dua</option>', false)
             ->assertSee('Reset filter')
             ->assertSee('href="'.route('products.index').'"', false);
+
+        $this->get(route('products.index', ['partner' => 'mitra-aktif']))
+            ->assertOk()
+            ->assertSee('<option value="mitra-aktif" selected>Mitra Aktif</option>', false)
+            ->assertSee('Reset filter');
     }
 }
