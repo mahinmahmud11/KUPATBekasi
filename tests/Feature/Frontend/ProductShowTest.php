@@ -26,12 +26,75 @@ class ProductShowTest extends TestCase
         Storage::disk('public')->put('products/second.webp', 'second');
         ProductImage::factory()->for($product)->create(['image_path' => 'products/second.webp', 'alt_text' => 'Galeri Kedua', 'sort_order' => 2]);
         ProductImage::factory()->for($product)->create(['image_path' => 'products/first.webp', 'alt_text' => 'Galeri Pertama', 'sort_order' => 1]);
+        ProductImage::factory()->for($product)->create(['image_path' => 'products/main.webp', 'alt_text' => 'Duplikat Gambar Utama', 'sort_order' => 3]);
 
         $response = $this->get(route('products.show', $product));
 
         $response->assertOk()->assertSee($product->name)->assertSee($partner->name)->assertSee($category->name)
             ->assertSee(Storage::disk('public')->url('products/main.webp'))
-            ->assertSeeInOrder(['Galeri Pertama', 'Galeri Kedua']);
+            ->assertSeeInOrder(['Produk Detail', 'Galeri Pertama', 'Galeri Kedua'])
+            ->assertSee('data-product-gallery', false)
+            ->assertSee('data-gallery-active-image', false)
+            ->assertSee('data-gallery-preview-open', false)
+            ->assertSee('data-gallery-dialog', false)
+            ->assertSee('role="dialog"', false)
+            ->assertSee('data-gallery-preview-close', false)
+            ->assertSee('data-gallery-previous', false)
+            ->assertSee('data-gallery-next', false)
+            ->assertSee('aria-label="Tampilkan gambar sebelumnya"', false)
+            ->assertSee('aria-label="Tampilkan gambar berikutnya"', false)
+            ->assertSee('data-gallery-src="'.Storage::disk('public')->url('products/main.webp').'"', false)
+            ->assertSee('data-gallery-alt="Produk Detail"', false)
+            ->assertSee('data-gallery-src="'.Storage::disk('public')->url('products/first.webp').'"', false)
+            ->assertSee('data-gallery-alt="Galeri Pertama"', false)
+            ->assertSee('data-gallery-src="'.Storage::disk('public')->url('products/second.webp').'"', false)
+            ->assertSee('data-gallery-alt="Galeri Kedua"', false)
+            ->assertSee('aria-current="true"', false)
+            ->assertSee('aria-current="false"', false)
+            ->assertDontSee('Duplikat Gambar Utama');
+    }
+
+    public function test_gallery_uses_first_ordered_image_when_main_image_is_missing_and_removes_duplicates(): void
+    {
+        $this->withoutVite();
+        Storage::fake('public');
+        $product = Product::factory()->create(['name' => 'Produk Galeri', 'main_image_path' => null]);
+        ProductImage::factory()->for($product)->create(['image_path' => 'products/later.webp', 'alt_text' => 'Gambar Lanjutan', 'sort_order' => 20]);
+        ProductImage::factory()->for($product)->create(['image_path' => 'products/first.webp', 'alt_text' => 'Gambar Pertama', 'sort_order' => 10]);
+        ProductImage::factory()->for($product)->create(['image_path' => 'products/first.webp', 'alt_text' => 'Duplikat', 'sort_order' => 30]);
+
+        $response = $this->get(route('products.show', $product));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-gallery-active-image', false)
+            ->assertSee('src="'.Storage::disk('public')->url('products/first.webp').'" alt="Gambar Pertama" data-gallery-active-image', false)
+            ->assertSeeInOrder(['Gambar Pertama', 'Gambar Lanjutan'])
+            ->assertDontSee('Duplikat');
+    }
+
+    public function test_single_image_gallery_hides_navigation_buttons(): void
+    {
+        $this->withoutVite();
+        $product = Product::factory()->create(['main_image_path' => 'products/only.webp']);
+
+        $this->get(route('products.show', $product))
+            ->assertOk()
+            ->assertSee('data-product-gallery', false)
+            ->assertSee('data-gallery-thumbnail', false)
+            ->assertDontSee('data-gallery-previous', false)
+            ->assertDontSee('data-gallery-next', false);
+    }
+
+    public function test_product_without_media_displays_fallback(): void
+    {
+        $this->withoutVite();
+        $product = Product::factory()->create(['main_image_path' => null]);
+
+        $this->get(route('products.show', $product))
+            ->assertOk()
+            ->assertSee('Gambar belum tersedia')
+            ->assertDontSee('data-product-gallery', false);
     }
 
     public function test_non_public_product_returns_not_found(): void
