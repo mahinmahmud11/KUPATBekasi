@@ -103,8 +103,9 @@ Ikuti langkah-langkah di bawah untuk mengatur lingkungan *development* pada komp
 8. **Buat Akun Administrator**
    Aplikasi ini tidak menyertakan akun admin bawaan pada seeder. Anda perlu membuatnya manual untuk mengakses Filament:
    ```bash
-   php artisan make:filament-user
+   php artisan kupat:make-admin
    ```
+   Perintah ini memastikan akun baru atau akun lama yang Anda masukkan dipromosikan dengan hak akses administrator (`is_admin=true`).
 
 9. **Storage Link**
    Buat tautan agar file *storage* dapat diakses publik:
