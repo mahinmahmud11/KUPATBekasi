@@ -2,7 +2,7 @@
 
 ## 1. Gambaran Umum
 
-Dokumen ini adalah panduan resmi (runbook) untuk melakukan _deployment_ produksi aplikasi KUPATBekasi ke lingkungan Virtual Private Server (VPS). 
+Dokumen ini adalah panduan resmi (runbook) untuk melakukan _deployment_ produksi aplikasi KUPATBekasi ke lingkungan Virtual Private Server (VPS).
 
 **Asumsi Lingkungan:**
 - Menggunakan VPS baru bersistem operasi **Ubuntu Server 24.04 LTS**.
