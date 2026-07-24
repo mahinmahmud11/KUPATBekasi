@@ -269,9 +269,12 @@ class HomePageTest extends TestCase
             ->assertSee('Pemerintah Kota Bekasi')
             ->assertSee('img/logo-kota-bekasi.png')
             ->assertSee('alt="Logo Kota Bekasi"', false)
+            ->assertSee('img/logo-dekranasda-kota-bekasi.png')
+            ->assertSee('alt="Logo DEKRANASDA Kota Bekasi"', false)
             ->assertSee('data-government-agency', false)
             ->assertSee('data-government-brand', false)
             ->assertSee('data-government-logo', false)
+            ->assertSee('data-dekranasda-logo', false)
             ->assertSee('data-site-logo', false);
     }
 

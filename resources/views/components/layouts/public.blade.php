@@ -44,20 +44,22 @@
             <div class="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-x-2 gap-y-4 px-4 py-3 sm:gap-x-4 sm:px-6 lg:flex-nowrap lg:px-8">
                 <a class="order-1 flex-shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gray-900" href="{{ route('home') }}">
                     @if ($siteSetting?->logo_path)
-                        <img class="h-10 w-36 object-cover object-center sm:h-12 sm:w-48 lg:w-56" data-site-logo src="{{ Storage::disk('public')->url($siteSetting->logo_path) }}" alt="{{ $siteName }}">
+                        <img class="h-8 w-32 object-cover object-center sm:h-12 sm:w-48 lg:w-56" data-site-logo src="{{ Storage::disk('public')->url($siteSetting->logo_path) }}" alt="{{ $siteName }}">
                     @else
                         <span class="text-lg font-semibold">{{ $siteName }}</span>
                     @endif
                 </a>
 
-                <div class="order-2 flex flex-shrink-0 items-center gap-2 sm:gap-3 lg:order-3 lg:ml-4" data-government-brand>
+                <div class="order-2 flex flex-shrink-0 items-center gap-1.5 sm:gap-3 lg:order-3 lg:ml-4" data-government-brand>
                     <div class="hidden h-10 w-px bg-gray-300 lg:block" aria-hidden="true"></div>
                     <div class="flex items-center gap-1.5 sm:gap-2">
-                        <div class="flex max-w-[130px] flex-col text-right sm:max-w-[200px] lg:max-w-none" data-government-agency>
+                        <div class="flex max-w-[115px] flex-col text-right sm:max-w-[200px] lg:max-w-none" data-government-agency>
                             <span class="text-[9px] leading-none text-gray-500 sm:text-[10px]">Didukung oleh</span>
                             <span class="mt-0.5 text-[9px] font-bold leading-tight text-gray-800 sm:text-xs lg:whitespace-nowrap">Dinas Koperasi Usaha Kecil dan Menengah<br>Pemerintah Kota Bekasi</span>
                         </div>
-                        <img class="h-10 w-auto object-contain sm:h-12 lg:h-14 xl:h-16" data-government-logo src="{{ asset('img/logo-kota-bekasi.png') }}" alt="Logo Kota Bekasi">
+                        <img class="h-9 w-auto object-contain sm:h-12 lg:h-14 xl:h-16" data-government-logo src="{{ asset('img/logo-kota-bekasi.png') }}" alt="Logo Kota Bekasi">
+                        <div class="h-6 w-px bg-gray-200 sm:h-8 lg:h-10" aria-hidden="true"></div>
+                        <img class="h-9 w-auto object-contain sm:h-12 lg:h-14 xl:h-16" data-dekranasda-logo src="{{ asset('img/logo-dekranasda-kota-bekasi.png') }}" alt="Logo DEKRANASDA Kota Bekasi">
                     </div>
                 </div>
 
