@@ -41,16 +41,27 @@
     </head>
     <body class="flex min-h-screen flex-col bg-gray-50 text-gray-900 antialiased [&>footer]:border-t [&>footer]:border-gray-200 [&>footer]:bg-white [&>header]:border-b [&>header]:border-gray-200 [&>header]:bg-white [&>main]:flex-1">
         <header>
-            <div class="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
-                <a class="focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gray-900" href="{{ route('home') }}">
+            <div class="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-x-2 gap-y-4 px-4 py-3 sm:gap-x-4 sm:px-6 lg:flex-nowrap lg:px-8">
+                <a class="order-1 flex-shrink-0 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gray-900" href="{{ route('home') }}">
                     @if ($siteSetting?->logo_path)
-                        <img class="h-12 w-48 object-cover object-center sm:w-56" data-site-logo src="{{ Storage::disk('public')->url($siteSetting->logo_path) }}" alt="{{ $siteName }}">
+                        <img class="h-10 w-36 object-cover object-center sm:h-12 sm:w-48 lg:w-56" data-site-logo src="{{ Storage::disk('public')->url($siteSetting->logo_path) }}" alt="{{ $siteName }}">
                     @else
                         <span class="text-lg font-semibold">{{ $siteName }}</span>
                     @endif
                 </a>
 
-                <nav aria-label="Navigasi utama">
+                <div class="order-2 flex flex-shrink-0 items-center gap-2 sm:gap-3 lg:order-3 lg:ml-4" data-government-brand>
+                    <div class="hidden h-10 w-px bg-gray-300 lg:block" aria-hidden="true"></div>
+                    <div class="flex items-center gap-1.5 sm:gap-2">
+                        <div class="flex max-w-[130px] flex-col text-right sm:max-w-[200px] lg:max-w-none" data-government-agency>
+                            <span class="text-[9px] leading-none text-gray-500 sm:text-[10px]">Didukung oleh</span>
+                            <span class="mt-0.5 text-[9px] font-bold leading-tight text-gray-800 sm:text-xs lg:whitespace-nowrap">Dinas Koperasi Usaha Kecil dan Menengah<br>Pemerintah Kota Bekasi</span>
+                        </div>
+                        <img class="h-10 w-auto object-contain sm:h-12 lg:h-14 xl:h-16" data-government-logo src="{{ asset('img/logo-kota-bekasi.png') }}" alt="Logo Kota Bekasi">
+                    </div>
+                </div>
+
+                <nav aria-label="Navigasi utama" class="order-3 w-full border-t border-gray-100 pt-3 lg:order-2 lg:flex lg:w-auto lg:flex-1 lg:justify-end lg:border-none lg:pt-0">
                     <ul class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-medium">
                         @foreach ([
                             'home' => 'Beranda',

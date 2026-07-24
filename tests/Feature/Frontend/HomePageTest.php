@@ -255,6 +255,26 @@ class HomePageTest extends TestCase
             ->assertSee('<meta name="twitter:description" content="Temukan produk dan profil UMKM binaan Kota Bekasi melalui katalog digital KUPATBekasi.">', false);
     }
 
+    public function test_public_layout_includes_government_endorsement_identity(): void
+    {
+        $this->withoutVite();
+        SiteSetting::factory()->create(['logo_path' => 'fake-logo.png']);
+
+        $response = $this->get(route('home'));
+
+        $response
+            ->assertOk()
+            ->assertSee('Didukung oleh')
+            ->assertSee('Dinas Koperasi Usaha Kecil dan Menengah')
+            ->assertSee('Pemerintah Kota Bekasi')
+            ->assertSee('img/logo-kota-bekasi.png')
+            ->assertSee('alt="Logo Kota Bekasi"', false)
+            ->assertSee('data-government-agency', false)
+            ->assertSee('data-government-brand', false)
+            ->assertSee('data-government-logo', false)
+            ->assertSee('data-site-logo', false);
+    }
+
     public function test_home_metadata_falls_back_to_site_setting_logo_when_first_banner_has_no_image(): void
     {
         $this->withoutVite();
